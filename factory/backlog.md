@@ -5,7 +5,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 
 ## Schritt 1: Zeit und Lager
 
-- [ ] Spielzustand und Kalender im Simulationskern: `GameState`, `createInitialState(seed)` und `tick(state)`, das pro Tick eine Spielstunde weiterzählt (24 Stunden pro Tag, 10 Tage pro Jahreszeit, 4 Jahreszeiten pro Jahr, Start Frühling Jahr 1 Tag 1)
+- [x] Spielzustand und Kalender im Simulationskern: `GameState`, `createInitialState(seed)` und `tick(state)`, das pro Tick eine Spielstunde weiterzählt (24 Stunden pro Tag, 10 Tage pro Jahreszeit, 4 Jahreszeiten pro Jahr, Start Frühling Jahr 1 Tag 1)
 - [ ] Spieluhr im Browser: Echtzeit-Schleife, die `tick` aufruft, mit Pause und Tempo 1x/2x/4x (1x = 1 Spieltag pro echter Minute) und Anzeige von Datum, Jahreszeit und Uhrzeit
 - [ ] Burglager: Warenarten (Weizen, Mehl, Brot, Wasser, Holz, Stein, Eisenerz, Werkzeug), Lagerbestand im Zustand mit Startwerten aus der Vision und ein Lager-Panel in der Oberfläche
 

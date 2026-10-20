@@ -1,4 +1,23 @@
 {
-  "jobs": [],
-  "updated": null
+  "jobs": [
+    {
+      "id": "001-game-state-calendar",
+      "title": "Spielzustand und Kalender im Simulationskern",
+      "branch": "factory/001-game-state-calendar",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-001-game-state-calendar",
+      "decision": "APPROVE",
+      "updated": "2026-10-20T22:04:21Z"
+    }
+  ],
+  "updated": "2026-10-20T22:04:21Z"
 }
