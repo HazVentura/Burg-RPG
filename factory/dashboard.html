@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Board</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --fg: #1c1c1a; --muted: #73736d; --line: #e4e3df;
+    --pass: #1f8a4c; --pass-bg: #e3f4ea; --changes: #b8590b; --changes-bg: #fdeedd;
+    --pending: #a3a39c; --human: #c0362c; --human-bg: #fdecea; --accent: #2f5bd3;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151514; --panel: #1f1f1d; --fg: #ecebe6; --muted: #9a9a92; --line: #33332f;
+      --pass: #5cc98a; --pass-bg: #18301f; --changes: #f0a35c; --changes-bg: #3a2814;
+      --pending: #6a6a64; --human: #ff7a6e; --human-bg: #3b1a17; --accent: #7d9cff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151514; --panel: #1f1f1d; --fg: #ecebe6; --muted: #9a9a92; --line: #33332f;
+    --pass: #5cc98a; --pass-bg: #18301f; --changes: #f0a35c; --changes-bg: #3a2814;
+    --pending: #6a6a64; --human: #ff7a6e; --human-bg: #3b1a17; --accent: #7d9cff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 12px; padding: 20px 24px 8px; flex-wrap: wrap; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+  .status { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pass); }
+  .dot.off { background: var(--human); }
+  .legend { margin-left: auto; display: flex; gap: 12px; color: var(--muted); font-size: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+  .board { display: grid; grid-template-columns: repeat(6, minmax(190px, 1fr)); gap: 12px; padding: 12px 24px 32px; overflow-x: auto; }
+  .col { min-width: 0; }
+  .col h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; }
+  .col h2 .arrow { opacity: 0.5; }
+  .col.human h2 { color: var(--human); }
+  .lane { display: flex; flex-direction: column; gap: 8px; min-height: 80px; padding: 6px; border-radius: 10px; background: color-mix(in srgb, var(--line) 35%, transparent); }
+  .col.human .lane { background: color-mix(in srgb, var(--human-bg) 70%, transparent); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; cursor: pointer; text-align: left; font: inherit; color: inherit; width: 100%; transition: border-color .15s, transform .15s; }
+  .card:hover, .card:focus-visible { border-color: var(--accent); outline: none; }
+  .card.human { border: 1.5px solid var(--human); box-shadow: 0 0 0 3px var(--human-bg); }
+  .card .id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .card .title { font-weight: 600; margin: 2px 0 6px; }
+  .card .meta { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+  .card .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: var(--human); }
+  .card .badge.ok { color: var(--pass); }
+  .rounds { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .round { display: flex; align-items: center; gap: 4px; }
+  .round .n { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 18px; }
+  .chip { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; border: 1px dashed var(--pending); color: var(--pending); }
+  .chip.PASS { border: 1px solid transparent; background: var(--pass-bg); color: var(--pass); }
+  .chip.CHANGES { border: 1px solid transparent; background: var(--changes-bg); color: var(--changes); }
+  .chip.pending { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+  .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 18px 4px; }
+  .hint { color: var(--muted); padding: 0 24px; font-size: 13px; }
+  .hint code { font-family: var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; }
+
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(860px, calc(100vw - 32px)); height: min(80vh, 760px); background: var(--panel); color: var(--fg); }
+  dialog::backdrop { background: rgb(0 0 0 / 0.35); }
+  .dlg { display: grid; grid-template-columns: 200px 1fr; grid-template-rows: auto 1fr; height: 100%; }
+  .dlg header { grid-column: 1 / -1; border-bottom: 1px solid var(--line); padding: 14px 18px; align-items: center; }
+  .dlg header .close { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .files { border-right: 1px solid var(--line); overflow-y: auto; padding: 8px; }
+  .files .group { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 10px 6px 4px; }
+  .files button { display: flex; justify-content: space-between; width: 100%; text-align: left; background: none; border: 0; padding: 5px 8px; border-radius: 6px; font: 12px var(--mono); color: var(--fg); cursor: pointer; }
+  .files button[aria-current="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  .files .v { font-family: system-ui; font-size: 10px; font-weight: 700; }
+  .v.PASS, .v.APPROVE { color: var(--pass); } .v.CHANGES { color: var(--changes); } .v.ESCALATE { color: var(--human); }
+  .doc { overflow-y: auto; padding: 18px 24px; }
+  .doc h1, .doc h2, .doc h3 { line-height: 1.25; margin: 1.2em 0 0.4em; } .doc h1 { font-size: 20px; margin-top: 0; } .doc h2 { font-size: 15px; } .doc h3 { font-size: 13px; }
+  .doc pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow-x: auto; font: 12px/1.5 var(--mono); }
+  .doc code { font-family: var(--mono); font-size: 12px; background: var(--bg); padding: 1px 4px; border-radius: 3px; }
+  .doc pre code { background: none; padding: 0; }
+  .doc .verdict { display: inline-block; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 999px; margin-bottom: 4px; }
+  .verdict.PASS, .verdict.APPROVE { background: var(--pass-bg); color: var(--pass); }
+  .verdict.CHANGES { background: var(--changes-bg); color: var(--changes); }
+  .verdict.ESCALATE { background: var(--human-bg); color: var(--human); }
+  .doc ul, .doc ol { padding-left: 20px; } .doc table { border-collapse: collapse; } .doc td, .doc th { border: 1px solid var(--line); padding: 4px 8px; }
+
+  @media (max-width: 700px) {
+    header, .board, .hint { padding-left: 16px; padding-right: 16px; }
+    .board { grid-template-columns: 1fr; }
+    .legend { margin-left: 0; }
+    .dlg { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
+    .files { border-right: 0; border-bottom: 1px solid var(--line); max-height: 160px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Factory</h1>
+  <span class="status"><span class="dot" id="dot"></span><span id="status">connecting…</span></span>
+  <span class="legend">
+    <span><span class="chip">S</span> security</span>
+    <span><span class="chip">U</span> ux</span>
+    <span><span class="chip">I</span> ui</span>
+    <span><span class="chip">C</span> code</span>
+  </span>
+</header>
+<p class="hint" id="hint" hidden>No jobs yet. Run <code>/factory next</code> or <code>/factory &lt;feature&gt;</code> in Claude Code.</p>
+<main class="board" id="board"></main>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <div class="dlg">
+    <header><div><div class="id" id="dlg-id" style="font:11px var(--mono);color:var(--muted)"></div><strong id="dlg-title"></strong></div><button class="close" aria-label="Close" onclick="dlg.close()">×</button></header>
+    <nav class="files" id="files"></nav>
+    <article class="doc" id="doc"></article>
+  </div>
+</dialog>
+
+<script>
+const STAGES = [
+  ["spec", "Spec"], ["build", "Build"], ["review", "Review"],
+  ["approval", "Approval"], ["needs-human", "Needs human"], ["merged", "Merged"],
+];
+const REVIEWERS = [["security", "S"], ["ux", "U"], ["ui", "I"], ["code", "C"]];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let board = { jobs: [] }, lastText = "", openJob = null, openPath = null;
+
+async function poll() {
+  try {
+    const res = await fetch("board.json", { cache: "no-store" });
+    const text = await res.text();
+    $("dot").className = "dot";
+    $("status").textContent = "live · " + new Date().toLocaleTimeString();
+    if (text !== lastText) {
+      lastText = text;
+      board = JSON.parse(text);
+      render();
+      if (openJob && dlg.open) openFiles(openJob, true);
+    }
+  } catch (e) {
+    $("dot").className = "dot off";
+    $("status").textContent = "board.json unreachable, serve factory/ with python3 -m http.server";
+  }
+}
+
+function rounds(job) {
+  const rows = [...(job.history || [])];
+  const started = !["spec", "build"].includes(job.stage) || Object.values(job.reviews || {}).some((v) => v !== "pending");
+  if (job.reviews && started) rows.push({ round: job.round, reviews: job.reviews });
+  return rows;
+}
+
+function chips(r) {
+  return `<div class="round"><span class="n">R${r.round}</span>` +
+    REVIEWERS.map(([k, l]) => { const v = r.reviews[k] || "pending"; return `<span class="chip ${esc(v)}" title="${k}: ${esc(v)}">${l}</span>`; }).join("") + `</div>`;
+}
+
+function card(job) {
+  const human = job.stage === "needs-human";
+  const badge = human ? `<span class="badge">NEEDS HUMAN</span>` : job.stage === "merged" ? `<span class="badge ok">MERGED</span>` : "";
+  const rs = rounds(job);
+  return `<button class="card${human ? " human" : ""}" data-id="${esc(job.id)}">
+    <div class="id">${esc(job.id)}</div>
+    <div class="title">${esc(job.title || job.id)}</div>
+    <div class="meta"><span>round ${esc(job.round || 1)}/${esc(job.max_round || 2)}</span>${badge}</div>
+    ${rs.length ? `<div class="rounds">${rs.map(chips).join("")}</div>` : ""}
+  </button>`;
+}
+
+function render() {
+  const jobs = board.jobs || [];
+  $("hint").hidden = jobs.length > 0;
+  $("board").innerHTML = STAGES.map(([key, label], i) => {
+    const list = jobs.filter((j) => j.stage === key);
+    return `<section class="col${key === "needs-human" ? " human" : ""}">
+      <h2><span>${label} · ${list.length}</span>${i < STAGES.length - 2 ? '<span class="arrow">→</span>' : ""}</h2>
+      <div class="lane">${list.map(card).join("") || '<div class="empty">—</div>'}</div>
+    </section>`;
+  }).join("");
+  document.querySelectorAll(".card").forEach((el) => el.onclick = () => openFiles(el.dataset.id));
+}
+
+async function fetchText(path) {
+  try {
+    const res = await fetch(path, { cache: "no-store" });
+    return res.ok ? await res.text() : null;
+  } catch { return null; }
+}
+
+function verdictOf(text) {
+  const first = (text || "").split("\n")[0].trim().replace(/^VERDICT:\s*/, "");
+  return ["PASS", "CHANGES", "APPROVE", "ESCALATE"].includes(first) ? first : "";
+}
+
+async function openFiles(id, keepSelection = false) {
+  const job = (board.jobs || []).find((j) => j.id === id);
+  if (!job) return;
+  openJob = id;
+  const base = `jobs/${id}/`;
+  const groups = [["Job", ["spec.md", "build.md"]]];
+  const total = Math.max(job.round || 1, (job.history || []).length);
+  for (let n = 1; n <= total; n++) {
+    groups.push([`Round ${n}`, ["security", "ux", "ui", "code"].map((k) => `round-${n}/review-${k}.md`).concat(`round-${n}/feedback-human.md`)]);
+  }
+  groups.push(["Decision", ["decision.md"]]);
+
+  const found = [];
+  const html = [];
+  for (const [label, paths] of groups) {
+    const items = [];
+    for (const p of paths) {
+      const text = await fetchText(base + p);
+      if (text === null) continue;
+      found.push({ path: p, text });
+      items.push(`<button data-path="${esc(p)}"><span>${esc(p.split("/").pop())}</span><span class="v ${verdictOf(text)}">${verdictOf(text)}</span></button>`);
+    }
+    if (items.length) html.push(`<div class="group">${label}</div>${items.join("")}`);
+  }
+  $("dlg-id").textContent = `${job.id} · ${job.branch || ""}`;
+  $("dlg-title").textContent = job.title || job.id;
+  $("files").innerHTML = html.join("") || '<div class="empty">No files yet.</div>';
+  const show = (p) => {
+    openPath = p;
+    const f = found.find((x) => x.path === p);
+    $("doc").innerHTML = f ? markdown(f.text) : '<p class="empty">Not written yet.</p>';
+    $("files").querySelectorAll("button").forEach((b) => b.setAttribute("aria-current", b.dataset.path === p));
+  };
+  $("files").querySelectorAll("button").forEach((b) => b.onclick = () => show(b.dataset.path));
+  const keep = keepSelection && found.some((f) => f.path === openPath);
+  show(keep ? openPath : (found.at(-1) || {}).path);
+  if (!dlg.open) dlg.showModal();
+}
+
+function inline(s) {
+  return s
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+
+function markdown(src) {
+  const lines = esc(src).split("\n");
+  const out = [];
+  let list = null, para = [];
+  const flushPara = () => { if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`); para = []; };
+  const flushList = () => { if (list) out.push(`</${list}>`); list = null; };
+  const v = verdictOf(src);
+  if (v) { out.push(`<span class="verdict ${v}">${v}</span>`); lines.shift(); }
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith("```")) {
+      flushPara(); flushList();
+      const code = [];
+      while (++i < lines.length && !lines[i].startsWith("```")) code.push(lines[i]);
+      out.push(`<pre><code>${code.join("\n")}</code></pre>`);
+      continue;
+    }
+    const h = line.match(/^(#{1,3})\s+(.*)/);
+    const li = line.match(/^\s*(?:[-*]|\d+\.)\s+(.*)/);
+    if (h) { flushPara(); flushList(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); }
+    else if (li) {
+      flushPara();
+      const kind = /^\s*\d+\./.test(line) ? "ol" : "ul";
+      if (list !== kind) { flushList(); out.push(`<${kind}>`); list = kind; }
+      out.push(`<li>${inline(li[1].replace(/^\[( |x)\]\s*/, (m, c) => c === "x" ? "☑ " : "☐ "))}</li>`);
+    } else if (line.trim() === "") { flushPara(); flushList(); }
+    else { flushList(); para.push(line.trim()); }
+  }
+  flushPara(); flushList();
+  return out.join("\n");
+}
+
+const dlg = $("dlg");
+dlg.addEventListener("close", () => { openJob = null; openPath = null; });
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>
