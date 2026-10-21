@@ -90,10 +90,18 @@ describe("initial storage", () => {
 });
 
 describe("tick and storage", () => {
-  it("leaves the storage unchanged over 960 ticks", () => {
+  it("leaves the storage unchanged over 960 ticks, except bread and water", () => {
+    // Bread and water are eaten daily (tests/needs.test.ts); no other good changes yet.
     const initial = createInitialState(SEED);
-    expect(tickTimes(initial, 960).storage).toEqual(initial.storage);
-    expect(tickTimes(initial, 960).storage).toEqual(INITIAL_STORAGE);
+    const later = tickTimes(initial, 960);
+    for (const good of GOODS) {
+      if (good === "bread" || good === "water") continue;
+      expect(later.storage[good]).toBe(initial.storage[good]);
+      expect(later.storage[good]).toBe(INITIAL_STORAGE[good]);
+    }
+    expect(later.storage.bread).toBeLessThanOrEqual(INITIAL_STORAGE.bread);
+    expect(later.storage.water).toBeLessThanOrEqual(INITIAL_STORAGE.water);
+    expect(Object.keys(later.storage).sort()).toEqual([...GOODS].sort());
   });
 
   it("does not mutate the input storage", () => {

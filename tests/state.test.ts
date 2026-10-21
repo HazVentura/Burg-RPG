@@ -101,11 +101,12 @@ describe("tick", () => {
       current = next;
     }
     const initial = createInitialState(SEED);
+    // Without production, 40 days of eating use up all bread and water; every need ends at 0.
     expect(current).toEqual({
       elapsedHours: 960,
       rngState: initial.rngState,
-      storage: { ...INITIAL_STORAGE },
-      residents: initial.residents,
+      storage: { ...INITIAL_STORAGE, bread: 0, water: 0 },
+      residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 } })),
       nextResidentId: 9,
     });
   });
