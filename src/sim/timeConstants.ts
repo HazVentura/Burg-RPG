@@ -18,3 +18,9 @@ export const FIRST_YEAR = 1;
 
 /** The first day of a season; days are 1-based like in the vision. */
 export const FIRST_DAY_OF_SEASON = 1;
+
+/** Days in one game year (40). Derived, so it follows any change to the season length. */
+export const DAYS_PER_YEAR = DAYS_PER_SEASON * SEASONS_PER_YEAR;
+
+/** Game hours, and so ticks, in one game year (960). Resident ages are counted in these years. */
+export const HOURS_PER_YEAR = HOURS_PER_DAY * DAYS_PER_YEAR;
