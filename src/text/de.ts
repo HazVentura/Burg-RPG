@@ -1,6 +1,7 @@
 // All player-facing German text lives here, so it can be translated later.
 
 import type { Season } from "../sim/calendar";
+import type { Good } from "../sim/goods";
 import type { Speed } from "../ui/clockConstants";
 
 // Keyed by Season so a missing season is a type error.
@@ -16,6 +17,18 @@ const speeds: Record<Speed, string> = {
   1: "1x",
   2: "2x",
   4: "4x",
+};
+
+// Keyed by Good so a missing good is a type error.
+const goods: Record<Good, string> = {
+  wheat: "Weizen",
+  flour: "Mehl",
+  bread: "Brot",
+  water: "Wasser",
+  wood: "Holz",
+  stone: "Stein",
+  ironOre: "Eisenerz",
+  tools: "Werkzeug",
 };
 
 export const de = {
@@ -34,5 +47,9 @@ export const de = {
     resume: "Weiter",
     speedGroupLabel: "Tempo",
     speeds,
+  },
+  goods,
+  storage: {
+    heading: "Lager",
   },
 } as const;

@@ -1,4 +1,5 @@
 import { createRandom } from "../src/sim/random";
+import { INITIAL_STORAGE } from "../src/sim/storageConstants";
 import { createInitialState, tick, type GameState } from "../src/sim/state";
 
 const SEED = 42;
@@ -81,7 +82,7 @@ describe("tick", () => {
       expect(next).not.toBe(current);
       current = next;
     }
-    expect(current).toEqual({ elapsedHours: 960, rngState: 42 });
+    expect(current).toEqual({ elapsedHours: 960, rngState: 42, storage: { ...INITIAL_STORAGE } });
   });
 
   it("gives the same result when a run of 960 ticks is repeated", () => {
@@ -108,12 +109,19 @@ describe("GameState serialization", () => {
     }
   });
 
-  it("is a plain object holding only finite numbers", () => {
+  it("is a plain object holding finite numbers and a plain storage object", () => {
     const state = tickTimes(createInitialState(-1), 100);
     expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
-    for (const value of Object.values(state)) {
+    expect(Object.keys(state).sort()).toEqual(["elapsedHours", "rngState", "storage"]);
+    for (const value of [state.elapsedHours, state.rngState]) {
       expect(typeof value).toBe("number");
       expect(Number.isFinite(value)).toBe(true);
+    }
+    expect(Object.getPrototypeOf(state.storage)).toBe(Object.prototype);
+    for (const value of Object.values(state.storage)) {
+      expect(typeof value).toBe("number");
+      expect(Number.isFinite(value)).toBe(true);
+      expect(value).toBeGreaterThanOrEqual(0);
     }
   });
 
