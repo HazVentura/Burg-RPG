@@ -44,7 +44,7 @@ describe("need constants", () => {
     expect(NEED_MAX).toBe(100);
     expect(BREAD_PER_RESIDENT_PER_DAY).toBe(1);
     expect(WATER_PER_RESIDENT_PER_DAY).toBe(1);
-    expect(NEED_DROP_PER_DAY_WITHOUT).toBe(25);
+    expect(NEED_DROP_PER_DAY_WITHOUT).toBe(15);
   });
 });
 
@@ -192,15 +192,15 @@ describe("consumeDailyFood", () => {
     });
   });
 
-  it("drops an unfed need by 25 a day down to 0 and keeps it there", () => {
+  it("drops an unfed need by 15 a day down to 0 and keeps it there", () => {
     let residents = [makeResident(1, { bread: NEED_MAX, water: NEED_MAX })];
     const seen: number[] = [];
-    for (let day = 0; day < 6; day++) {
+    for (let day = 0; day < 8; day++) {
       const result = consumeDailyFood(residents, makeStorage(100, 0));
       residents = result.residents;
       seen.push(residents[0]?.needs.water ?? -1);
     }
-    expect(seen).toEqual([75, 50, 25, 0, 0, 0]);
+    expect(seen).toEqual([85, 70, 55, 40, 25, 10, 0, 0]);
   });
 
   it("clamps at NEED_MIN when a need is below the drop", () => {
@@ -237,7 +237,7 @@ describe("consumeDailyFood", () => {
 
 describe("daily consumption through tick", () => {
   it("applies to a hand-made single resident at midnight", () => {
-    const state = stateBeforeMidnight([makeResident(1, { bread: 25, water: 25 })], makeStorage(0, 1));
+    const state = stateBeforeMidnight([makeResident(1, { bread: 10, water: 25 })], makeStorage(0, 1));
     const next = tick(state);
     expect(next.elapsedHours).toBe(HOURS_PER_DAY);
     expect(next.residents[0]?.needs).toEqual({ bread: NEED_MIN, water: NEED_MAX });
@@ -252,7 +252,7 @@ describe("daily consumption through tick", () => {
 });
 
 describe("start values outcome", () => {
-  // Pins the numbers on purpose: 8 residents, 60 bread, 40 water, 1 ration each, drop 25.
+  // Pins the numbers on purpose: 8 residents, 60 bread, 40 water, 1 ration each, drop 15.
   it("after 5 days: 20 bread, 0 water, every need 100", () => {
     const state = tickTimes(createInitialState(SEED), 120);
     expect(state.storage.bread).toBe(20);
@@ -261,20 +261,20 @@ describe("start values outcome", () => {
     expect(waterNeeds(state)).toEqual(Array(8).fill(100));
   });
 
-  it("after 6 days: 12 bread, 0 water, bread 100, water 75", () => {
+  it("after 6 days: 12 bread, 0 water, bread 100, water 85", () => {
     const state = tickTimes(createInitialState(SEED), 144);
     expect(state.storage.bread).toBe(12);
     expect(state.storage.water).toBe(0);
     expect(breadNeeds(state)).toEqual(Array(8).fill(100));
-    expect(waterNeeds(state)).toEqual(Array(8).fill(75));
+    expect(waterNeeds(state)).toEqual(Array(8).fill(85));
   });
 
-  it("after 8 days: 0 bread, residents 1 to 4 at bread 100, 5 to 8 at 75, water 25", () => {
+  it("after 8 days: 0 bread, residents 1 to 4 at bread 100, 5 to 8 at 85, water 55", () => {
     const state = tickTimes(createInitialState(SEED), 192);
     expect(state.storage.bread).toBe(0);
     expect(state.storage.water).toBe(0);
-    expect(breadNeeds(state)).toEqual([100, 100, 100, 100, 75, 75, 75, 75]);
-    expect(waterNeeds(state)).toEqual(Array(8).fill(25));
+    expect(breadNeeds(state)).toEqual([100, 100, 100, 100, 85, 85, 85, 85]);
+    expect(waterNeeds(state)).toEqual(Array(8).fill(55));
   });
 });
 

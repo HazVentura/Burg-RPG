@@ -16,5 +16,5 @@ export const BREAD_PER_RESIDENT_PER_DAY = 1;
 /** Water one resident drinks per game day, whatever their age. */
 export const WATER_PER_RESIDENT_PER_DAY = 1;
 
-/** Points a need loses on a day without its ration: 100 reaches 0 after four days. */
-export const NEED_DROP_PER_DAY_WITHOUT = 25;
+/** Points a need loses on a day without its ration: 100 reaches 0 after seven days. */
+export const NEED_DROP_PER_DAY_WITHOUT = 15;
