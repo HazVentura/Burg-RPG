@@ -3,11 +3,13 @@
 // so buttons keep keyboard focus while the clock runs.
 
 import { getCalendar } from "../sim/calendar";
+import { GOODS, type Good } from "../sim/goods";
 import { tick, type GameState } from "../sim/state";
 import { de } from "../text/de";
 import { advanceClock, createClock, setSpeed, togglePaused, type ClockState } from "./clock";
 import { SPEEDS, type Speed } from "./clockConstants";
 import { formatClock } from "./formatClock";
+import { formatStorage } from "./formatStorage";
 
 interface ClockView {
   date: HTMLElement;
@@ -15,6 +17,11 @@ interface ClockView {
   time: HTMLElement;
   pauseButton: HTMLButtonElement;
   speedButtons: Map<Speed, HTMLButtonElement>;
+}
+
+interface StorageView {
+  /** Amount element per good, built once and updated in place on every refresh. */
+  amounts: Map<Good, HTMLElement>;
 }
 
 export function renderApp(root: HTMLElement, initialState: GameState): void {
@@ -28,10 +35,14 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
   tagline.textContent = de.tagline;
 
   const view = buildClockView();
-  main.append(title, tagline, view.section);
+  const storageView = buildStorageView();
+  main.append(title, tagline, view.section, storageView.section);
   root.replaceChildren(main);
 
-  const refresh = (): void => updateClockView(view, state, clock);
+  const refresh = (): void => {
+    updateClockView(view, state, clock);
+    updateStorageView(storageView, state);
+  };
 
   view.pauseButton.addEventListener("click", () => {
     clock = togglePaused(clock);
@@ -108,6 +119,26 @@ function buildClockView(): ClockView & { section: HTMLElement } {
   return { section, date, season, time, pauseButton, speedButtons };
 }
 
+function buildStorageView(): StorageView & { section: HTMLElement } {
+  const section = document.createElement("section");
+  section.className = "storage";
+  const heading = document.createElement("h2");
+  heading.id = "storage-heading";
+  heading.textContent = de.storage.heading;
+  section.setAttribute("aria-labelledby", heading.id);
+
+  // Deliberately no aria-live, like the clock: stock changes every hour later on.
+  const list = document.createElement("dl");
+  list.className = "storage-values";
+  const amounts = new Map<Good, HTMLElement>();
+  for (const good of GOODS) {
+    amounts.set(good, addValue(list, de.goods[good]));
+  }
+
+  section.append(heading, list);
+  return { section, amounts };
+}
+
 function addValue(list: HTMLDListElement, label: string): HTMLElement {
   const item = document.createElement("div");
   const term = document.createElement("dt");
@@ -134,5 +165,14 @@ function updateClockView(view: ClockView, state: GameState, clock: ClockState): 
   view.pauseButton.textContent = clock.paused ? de.clock.resume : de.clock.pause;
   for (const [speed, button] of view.speedButtons) {
     button.setAttribute("aria-pressed", String(speed === clock.speed));
+  }
+}
+
+function updateStorageView(view: StorageView, state: GameState): void {
+  for (const row of formatStorage(state.storage)) {
+    const amount = view.amounts.get(row.good);
+    if (amount !== undefined) {
+      amount.textContent = row.amount;
+    }
   }
 }
