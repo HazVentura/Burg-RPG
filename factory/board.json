@@ -148,7 +148,7 @@
       "id": "009-admin-ui-layout",
       "title": "Grundlayout der Verwaltungsoberfläche",
       "branch": "factory/009-admin-ui-layout",
-      "stage": "needs-human",
+      "stage": "merged",
       "round": 1,
       "max_round": 2,
       "reviews": {
@@ -159,9 +159,9 @@
       },
       "history": [],
       "builder": "builder-009-admin-ui-layout",
-      "decision": "ESCALATE",
-      "updated": "2026-10-21T05:28:23Z"
+      "decision": "APPROVE (human)",
+      "updated": "2026-10-21T05:31:26Z"
     }
   ],
-  "updated": "2026-10-21T05:28:23Z"
+  "updated": "2026-10-21T05:31:26Z"
 }
