@@ -89,7 +89,25 @@
       "builder": "builder-005-food-and-drink",
       "decision": "APPROVE",
       "updated": "2026-10-21T04:50:52Z"
+    },
+    {
+      "id": "006-buildings-and-construction",
+      "title": "Gebäude",
+      "branch": "factory/006-buildings-and-construction",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-006-buildings-and-construction",
+      "decision": "APPROVE",
+      "updated": "2026-10-21T04:59:06Z"
     }
   ],
-  "updated": "2026-10-21T04:50:52Z"
+  "updated": "2026-10-21T04:59:06Z"
 }
