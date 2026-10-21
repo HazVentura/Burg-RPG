@@ -9,6 +9,14 @@ export const JOBS = ["waterCarrier", "farmer", "miller", "baker", "woodcutter"] 
 
 export type Job = (typeof JOBS)[number];
 
+/**
+ * Runtime check for values from outside the type system, such as a tampered
+ * <select> value: true only for one of JOBS.
+ */
+export function isJob(value: unknown): value is Job {
+  return (JOBS as readonly unknown[]).includes(value);
+}
+
 /** docs/vision.md, section 5: each job works in exactly one building type. */
 export const JOB_BUILDING: Readonly<Record<Job, BuildingType>> = Object.freeze({
   waterCarrier: "well",
