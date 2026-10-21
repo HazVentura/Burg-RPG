@@ -1,0 +1,31 @@
+# Build: 004-residents-as-individuals
+
+## Round 1
+- What changed:
+  - `src/sim/timeConstants.ts`: adds `DAYS_PER_YEAR` (40) and `HOURS_PER_YEAR` (960), both derived from the existing calendar constants.
+  - `src/sim/residentConstants.ts` (new): `START_COUPLES`, `START_AGE_MIN_YEARS`, `START_AGE_MAX_YEARS`.
+  - `src/sim/residents.ts` (new): `SEXES`, `Sex`, `Resident`, `getAgeYears`, `createSettlers(random)` with a fixed draw order (per couple female then male; per resident name, age, birthday offset).
+  - `src/sim/names.ts` (new): `GIVEN_NAMES: Record<Sex, readonly string[]>` (32 female, 32 male, frozen) and `pickName(random, sex, taken)`, which uses one draw, filters out taken names and falls back to the full list. The header comment says why the names live in the core and not in `de.ts`.
+  - `src/sim/state.ts`: `GameState` gets `residents` and `nextResidentId`. `createInitialState` runs one `createRandom(seed)` through settler creation and stores its final state in `rngState`.
+  - `tests/residents.test.ts`, `tests/names.test.ts` (new); `tests/state.test.ts` updated.
+- AC1: `src/sim/residents.ts` (`SEXES`, `Sex`, `Resident`); field set checked by "has exactly these fields on every resident" (residents.test.ts).
+- AC2: `src/sim/state.ts` `GameState`; state.test.ts "is a plain object ..." (Object.keys list) and the exact-shape `toEqual` after 960 ticks.
+- AC3: `getAgeYears` in residents.ts; `HOURS_PER_YEAR` derived in timeConstants.ts; tests "counts completed game years" (5 at 0 and 959, 6 at 960) and "derives HOURS_PER_YEAR as 960 from the calendar constants".
+- AC4: "lists couples next to each other, female first, partnered with each other", "gives every resident a partner other than itself, symmetrically", "has exactly 4 female and 4 male residents".
+- AC5: "creates 8 residents with ids 1 to 8 and nextResidentId 9".
+- AC6: "keeps start ages within 5 to 10 years over many seeds, reaching both bounds" (seeds 0 to 199), "stores bornAtHour as whole days before a whole-year age", "spreads birthdays over the year, including both ends of the offset range", "reproduces the settlers from the documented draw order".
+- AC7: "draws partners' ages independently" (separate draws; partners differ in age for some seeds).
+- AC8: names.test.ts `GIVEN_NAMES` block (at least 30, no duplicates, disjoint lists, trimmed non-empty, spec example names present).
+- AC9: names.test.ts `pickName` block: normal pick with empty `taken`, determinism, one draw only, avoid taken names, all-but-one taken, exhausted-list fallback.
+- AC10: state.test.ts "stores the generator state after the settler draws", "continues the random sequence where settler creation stopped"; residents.test.ts "reproduces the settlers from the documented draw order" (also checks final `rngState`).
+- AC11: "gives 8 different names, each from the list for the resident's sex" (seeds 42, 0, -1, 0 to 199).
+- AC12: "gives deep-equal residents for the same seed", "gives different name lists across seeds 1 to 20".
+- AC13: "leaves residents, nextResidentId and rngState unchanged over 960 ticks", "ages every resident by exactly one year over 960 ticks", "does not mutate the input state's residents"; existing tick mutation tests in state.test.ts.
+- AC14: "survives a JSON round trip with residents, including partnerId null"; existing round-trip tests in state.test.ts now include residents.
+- AC15: "returns fresh resident objects on each call".
+- AC16: `src/sim/residentConstants.ts`; used in residents.ts, no inline literals.
+- AC17: old exact `rngState` tests (42, 0, 4294967295) replaced with: 32-bit unsigned integer for seeds 42/0/-1, deterministic per seed, continuation of the sequence, and the kept "different rngStates for different seeds" test. Exact-shape `toEqual` and `Object.keys` tests updated. No new dependencies.
+- AC18: no changes in `src/ui/`, `src/main.ts` or `src/text/de.ts` (`git diff main --stat`).
+- Test run: `npm test`, 123 tests in 9 files, all passing. `npm run build` passes.
+- Note: the worktree has an untracked `node_modules` symlink to the repo root's `node_modules` so tests can run; it is not committed.
+- Assumptions as in the spec: start ages 5 to 10, sexes `female`/`male`, given names only, settler ages measured from hour 0.
