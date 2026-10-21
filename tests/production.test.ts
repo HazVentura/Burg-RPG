@@ -32,6 +32,7 @@ function makeResident(id: number, workplaceId: number | null): Resident {
     partnerId: null,
     needs: { bread: 100, water: 100 },
     workplaceId,
+    pinnedJob: null,
   };
 }
 
@@ -44,6 +45,21 @@ function emptyStorage(goods: Partial<Storage> = {}): Storage {
   return { ...storage, ...goods };
 }
 
+/**
+ * Wish numbers that keep a hand-made staffing as it is under assignJobs: per job,
+ * the residents whose workplaceId points to a building of that job (finished or not).
+ * So nobody is released, and nobody idle is moved into a job.
+ */
+function targetsFor(buildings: readonly Building[], residents: readonly Resident[]): Record<Job, number> {
+  const targets = Object.fromEntries(JOBS.map((job) => [job, 0])) as Record<Job, number>;
+  for (const resident of residents) {
+    const building = buildings.find((b) => b.id === resident.workplaceId);
+    const job = building === undefined ? null : jobForBuilding(building.type);
+    if (job !== null) targets[job] += 1;
+  }
+  return targets;
+}
+
 /** A hand-made state at hour 1 of day 1, so one tick is never a midnight tick. */
 function makeState(buildings: Building[], residents: Resident[], storage: Storage, elapsedHours = 1): GameState {
   return {
@@ -54,6 +70,7 @@ function makeState(buildings: Building[], residents: Resident[], storage: Storag
     nextResidentId: residents.length + 1,
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
+    jobTargets: targetsFor(buildings, residents),
   };
 }
 
@@ -197,7 +214,8 @@ describe("who works", () => {
     const state = makeState(buildings, residents, storage);
     const next = tick(state);
     expect(next.storage).toEqual(storage);
-    expect(next.residents.map((r) => r.workplaceId)).toEqual([null, 99, 1, 2]);
+    // Since job assignment runs in tick, these invalid workplaces are cleared afterwards.
+    expect(next.residents.map((r) => r.workplaceId)).toEqual([null, null, null, null]);
   });
 
   it("caps workers per building at its workplaces, first in list order", () => {
@@ -237,9 +255,10 @@ describe("who works", () => {
     if (!ordered.ok) throw new Error("order failed");
     const wellId = ordered.state.nextBuildingId - 1;
     expect(wellId).toBe(3);
+    // One water carrier wanted: resident 1 is staffed once the well is finished.
     const start: GameState = {
       ...ordered.state,
-      residents: ordered.state.residents.map((r) => (r.id === 1 ? { ...r, workplaceId: wellId } : r)),
+      jobTargets: { ...ordered.state.jobTargets, waterCarrier: 1 },
     };
     const buildHours = BUILDING_DEFINITIONS.well.buildHours;
     expect(buildHours).toBe(24);
@@ -273,9 +292,14 @@ describe("who works", () => {
   });
 
   it("ignores age, sex, partner and needs, every hour of the day", () => {
+    // produceHour itself ignores age; only job assignment keeps children out of work.
     const newborn: Resident = { ...makeResident(1, 3), bornAtHour: 0, needs: { bread: 0, water: 0 } };
     const elder: Resident = { ...makeResident(2, 4), sex: "male", bornAtHour: -80 * HOURS_PER_YEAR, partnerId: 1 };
-    let state = makeState([finished(3, "woodcutterHut"), finished(4, "woodcutterHut")], [newborn, elder], emptyStorage(), 0);
+    const huts = [finished(3, "woodcutterHut"), finished(4, "woodcutterHut")];
+    expect(produceHour(huts, [newborn, elder], emptyStorage()).wood).toBe(2 * output("woodcutter", "wood"));
+    // Through tick: a hungry adult instead of the newborn, who would lose the workplace.
+    const hungry: Resident = { ...makeResident(1, 3), needs: { bread: 0, water: 0 } };
+    let state = makeState(huts, [hungry, elder], emptyStorage(), 0);
     for (let hour = 0; hour < HOURS_PER_DAY; hour++) {
       const before = state.storage.wood;
       state = tick(state);
@@ -388,6 +412,7 @@ describe("production inside tick (AC16)", () => {
       buildings: [...initial.buildings, finished(3, "well")],
       nextBuildingId: 4,
       residents: initial.residents.map((r) => (r.id === 1 ? { ...r, workplaceId: 3 } : r)),
+      jobTargets: { ...initial.jobTargets, waterCarrier: 1 },
     };
   }
 

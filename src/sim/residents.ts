@@ -5,10 +5,11 @@
 // the clock. So tick never has to touch residents for them to age, and a
 // newborn later only needs bornAtHour = state.elapsedHours.
 
+import type { Job } from "./jobs";
 import { createFullNeeds, type Needs } from "./needs";
 import { pickName } from "./names";
 import type { Random } from "./random";
-import { START_AGE_MAX_YEARS, START_AGE_MIN_YEARS, START_COUPLES } from "./residentConstants";
+import { ADULT_AGE_YEARS, START_AGE_MAX_YEARS, START_AGE_MIN_YEARS, START_COUPLES } from "./residentConstants";
 import { DAYS_PER_YEAR, HOURS_PER_DAY, HOURS_PER_YEAR } from "./timeConstants";
 
 export const SEXES = ["female", "male"] as const;
@@ -29,11 +30,18 @@ export interface Resident {
   needs: Needs;
   /** id of the building the resident works in, or null without a workplace. The job follows from its type. */
   workplaceId: number | null;
+  /** Job the player pinned this resident to, or null when job assignment places them automatically. */
+  pinnedJob: Job | null;
 }
 
 /** Completed game years of `resident` at the given elapsed hours. */
 export function getAgeYears(resident: Resident, elapsedHours: number): number {
   return Math.floor((elapsedHours - resident.bornAtHour) / HOURS_PER_YEAR);
+}
+
+/** docs/vision.md, section 7.2: adults are the residents who may work. */
+export function isAdult(resident: Resident, elapsedHours: number): boolean {
+  return getAgeYears(resident, elapsedHours) >= ADULT_AGE_YEARS;
 }
 
 export interface Settlers {
@@ -83,8 +91,9 @@ function createSettler(
     partnerId,
     // Not drawn: settlers start fully fed, so the seeded draw order stays unchanged.
     needs: createFullNeeds(),
-    // Nobody works at the start; job assignment comes later.
+    // Nobody works at the start; assignJobs places residents once wish numbers are set.
     workplaceId: null,
+    pinnedJob: null,
   };
 }
 

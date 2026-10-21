@@ -6,8 +6,11 @@
 /** Number of couples a new game starts with. */
 export const START_COUPLES = 4;
 
-/** Youngest starting settler in whole game years: the adult age from section 7.2. */
-export const START_AGE_MIN_YEARS = 5;
+/** Section 7.2: "Erwachsen | ab 5" game years. Only adults work or can be pinned to a job. */
+export const ADULT_AGE_YEARS = 5;
+
+/** Youngest starting settler in whole game years: settlers all start as adults. */
+export const START_AGE_MIN_YEARS = ADULT_AGE_YEARS;
 
 /** Oldest starting settler in whole game years, inclusive. */
 export const START_AGE_MAX_YEARS = 10;

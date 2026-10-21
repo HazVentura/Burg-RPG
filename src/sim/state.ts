@@ -3,8 +3,10 @@
 // it with JSON.stringify and restore it unchanged.
 
 import { START_HOUSES } from "./buildingConstants";
+import { assignJobs } from "./assignment";
 import { advanceConstruction, type Building } from "./buildings";
 import type { Storage } from "./goods";
+import { JOBS, type Job } from "./jobs";
 import { consumeDailyFood } from "./needs";
 import { produceHour } from "./production";
 import { createRandom } from "./random";
@@ -27,6 +29,13 @@ export interface GameState {
   buildings: Building[];
   /** id for the next new building; only ever grows, so ids are never reused. */
   nextBuildingId: number;
+  /** Wish number per job (Wunschzahl): how many residents the player wants in it, pinned ones included. */
+  jobTargets: Record<Job, number>;
+}
+
+/** Every job's wish number at 0, built from JOBS so no job is forgotten; a fresh object per call. */
+function createJobTargets(): Record<Job, number> {
+  return Object.fromEntries(JOBS.map((job) => [job, 0])) as Record<Job, number>;
 }
 
 /** The free starting houses with ids 1..START_HOUSES; fresh objects on every call. */
@@ -47,6 +56,7 @@ export function createInitialState(seed: number): GameState {
     nextResidentId,
     buildings: createStartHouses(),
     nextBuildingId: START_HOUSES + 1,
+    jobTargets: createJobTargets(),
   };
 }
 
@@ -60,6 +70,8 @@ export function createInitialState(seed: number): GameState {
  * 2. All buildings under construction get 1 hour closer to done.
  * 3. On the step into hour 0 of a new day, residents eat and drink
  *    (consumeDailyFood), including what was made in this last hour.
+ * 4. Job assignment (assignJobs) at the new hour, so a building finished in
+ *    this tick is staffed now and produces from the next tick.
  */
 export function tick(state: GameState): GameState {
   const advanced: GameState = {
@@ -69,8 +81,8 @@ export function tick(state: GameState): GameState {
     buildings: advanceConstruction(state.buildings),
   };
   if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {
-    return advanced;
+    return assignJobs(advanced);
   }
   const { residents, storage } = consumeDailyFood(advanced.residents, advanced.storage);
-  return { ...advanced, residents, storage };
+  return assignJobs({ ...advanced, residents, storage });
 }

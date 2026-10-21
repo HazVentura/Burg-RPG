@@ -106,13 +106,14 @@ describe("tick", () => {
       elapsedHours: 960,
       rngState: initial.rngState,
       storage: { ...INITIAL_STORAGE, bread: 0, water: 0 },
-      residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 }, workplaceId: null })),
+      residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 }, workplaceId: null, pinnedJob: null })),
       nextResidentId: 9,
       buildings: [
         { id: 1, type: "house", hoursLeft: 0 },
         { id: 2, type: "house", hoursLeft: 0 },
       ],
       nextBuildingId: 3,
+      jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
     });
   });
 
@@ -146,6 +147,7 @@ describe("GameState serialization", () => {
     expect(Object.keys(state).sort()).toEqual([
       "buildings",
       "elapsedHours",
+      "jobTargets",
       "nextBuildingId",
       "nextResidentId",
       "residents",
