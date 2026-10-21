@@ -1,0 +1,34 @@
+# Build: 007-starting-jobs-production
+
+## Round 1
+- What changed:
+  - `src/sim/jobs.ts` (new): `JOBS`, `Job`, frozen `JOB_BUILDING`, `jobForBuilding`.
+  - `src/sim/productionConstants.ts` (new): `Recipe` type and the frozen `RECIPES` table (nested maps frozen too); the only place the recipe numbers live.
+  - `src/sim/production.ts` (new): pure `produceHour(buildings, residents, storage) -> Storage`; counts workers per finished work building (capped at `workplaces`, resident list order), then runs worker-hours in building order, all-or-nothing per worker.
+  - `src/sim/residents.ts`: new `workplaceId: number | null` field; settlers start with `null` (no new draws).
+  - `src/sim/state.ts`: `tick` runs production on the input buildings, then construction, then midnight consumption; doc comment updated.
+  - `tests/production.test.ts` (new): covers AC1 to AC19.
+  - `tests/residents.test.ts`, `tests/needs.test.ts`, `tests/state.test.ts`: updated for the new field (keys list, hand-made residents, settler shape, 960-tick exact state), still checking the same things.
+- AC1: `jobs > lists exactly the five starting jobs` (src/sim/jobs.ts:8)
+- AC2: `jobs > maps each job to its work building`, `jobs > gives every building with workplaces exactly one job, and the house none`
+- AC3: `recipes > has the agreed start values` (the one pinned table), `recipes > has one recipe per job, frozen including nested maps`; all other tests use `RECIPES`
+- AC4: `recipes > uses positive multiples of 1/8, at least one output, no good on both sides, no tools`
+- AC5: `tests/residents.test.ts > has exactly these fields on every resident`; `tests/state.test.ts` top-level keys test unchanged
+- AC6: `workplaceId on residents > starts null...`, `> keeps rngState and settlers unchanged...`, `> leaves a new game exactly as daily consumption alone would, over 100 days`; `tests/state.test.ts > does not mutate any state over 960 ticks` (exact state)
+- AC7: `who works > ignores null, unknown ids, houses and buildings under construction, without throwing`, `> lets a resident in a finished well work`
+- AC8: `who works > caps workers per building at its workplaces...` (3 at a well -> water +1), `> caps per building...`, `> caps workers the same way when resident ids are not in list order`, `> serves two buildings of the same type...`
+- AC9: `who works > first produces on the tick after construction finishes` (orderBuilding well, ticks 1-24 no production, +0.5 on 25), `> produces from the first hour of the next day when a building finishes on a midnight tick`
+- AC10: `who works > ignores age, sex, partner and needs, every hour of the day`; AC14 test for seasons
+- AC11: `one hour of production > takes inputs and adds outputs when inputs are exactly enough`, `> takes nothing when one of three baker inputs is short`, `> never lets storage go below zero`
+- AC12: `one hour of production > runs buildings in list order: bakery before mill` and `... mill before bakery bakes on tick 1`
+- AC13: `one hour of production > lets the first baker bake and the second idle when flour runs out`
+- AC14: `one hour of production > makes wheat at the same rate in every season, with no inputs`
+- AC15: `one hour of production > only changes storage`
+- AC16: `production inside tick > adds 0.5 water in the first hour` (40.5), `> produces in hour 23 to 0 before the midnight drink` (water 44, bread 52), `> lets the last hour's water reach the midnight drink`, `> keeps construction working as before while workers produce`
+- AC17: `purity... > never mutates its input, and gives deep-equal results for the same input`, `> does not mutate the inputs of produceHour`; production imports no randomness
+- AC18: `purity... > survives a JSON round trip with workers in all five building types` (fractional amounts, `workplaceId` null and numbers)
+- AC19: `purity... > keeps storage exact over a 960-tick chain` (`toBe` against values computed from `RECIPES` and need constants)
+- AC20: tests above; existing tests updated, none deleted; no new dependencies
+- AC21: no changes in `src/ui/`, `src/main.ts`, `src/text/de.ts` (`git diff main --stat`)
+- Test run: `npm test`, 222 tests, all passing; `npm run build` passes
+- Note: `tick` now always returns a fresh `storage` object (production copies it), so the doc comment that storage is shared with the input was updated.

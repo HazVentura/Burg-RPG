@@ -107,7 +107,25 @@
       "builder": "builder-006-buildings-and-construction",
       "decision": "APPROVE",
       "updated": "2026-10-21T04:59:06Z"
+    },
+    {
+      "id": "007-starting-jobs-production",
+      "title": "Produktion der 5 Startberufe",
+      "branch": "factory/007-starting-jobs-production",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-007-starting-jobs-production",
+      "decision": "APPROVE",
+      "updated": "2026-10-21T05:10:01Z"
     }
   ],
-  "updated": "2026-10-21T04:59:06Z"
+  "updated": "2026-10-21T05:10:01Z"
 }
