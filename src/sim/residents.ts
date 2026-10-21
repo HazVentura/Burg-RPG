@@ -27,6 +27,8 @@ export interface Resident {
   partnerId: number | null;
   /** Food and drink supply; changed once per game day by consumeDailyFood. */
   needs: Needs;
+  /** id of the building the resident works in, or null without a workplace. The job follows from its type. */
+  workplaceId: number | null;
 }
 
 /** Completed game years of `resident` at the given elapsed hours. */
@@ -81,6 +83,8 @@ function createSettler(
     partnerId,
     // Not drawn: settlers start fully fed, so the seeded draw order stays unchanged.
     needs: createFullNeeds(),
+    // Nobody works at the start; job assignment comes later.
+    workplaceId: null,
   };
 }
 
