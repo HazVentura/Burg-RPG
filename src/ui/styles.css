@@ -79,6 +79,11 @@ body {
   .areas {
     grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
   }
+
+  /* The widest area: its own full-width row, so the resident cards can sit side by side. */
+  .area-residents {
+    grid-column: 1 / -1;
+  }
 }
 
 .area h2 {
@@ -122,7 +127,9 @@ body {
   gap: 0.25rem;
 }
 
-.clock button {
+.clock button,
+.area button,
+.area select {
   min-width: 44px;
   min-height: 44px;
   padding: 0.5rem 0.9rem;
@@ -139,7 +146,9 @@ body {
   min-width: 6.5rem;
 }
 
-.clock button:focus-visible {
+.clock button:focus-visible,
+.area button:focus-visible,
+.area select:focus-visible {
   outline: 3px solid #2457a6;
   outline-offset: 2px;
 }
@@ -182,4 +191,202 @@ body {
   /* Equal-width digits so amounts do not jitter as they change. */
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* Bewohner area */
+
+.area h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Safety-net message after a refused command; takes no space while empty. */
+.command-error {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #8a7a62;
+  border-radius: 0.375rem;
+  font-weight: 600;
+}
+
+.command-error:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* One stacked card per resident; as many cards side by side as fit. */
+.resident-list,
+.job-target-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.resident-list {
+  display: grid;
+  /* min() keeps one card within the panel even at 200 % text size on a phone. */
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.resident {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border: 1px solid #e4d9c4;
+  border-radius: 0.375rem;
+}
+
+.resident-facts {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.resident-facts div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+
+.resident-facts dt {
+  color: #5a4c38;
+}
+
+.resident-facts dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Below the job text, so the waiting state reads as a note on it. */
+.waiting-note {
+  display: block;
+  font-weight: 400;
+  font-style: italic;
+  color: #5a4c38;
+}
+
+.waiting-note:empty {
+  display: none;
+}
+
+.resident-needs {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* Label, bar and number in one row; wraps at large text sizes. */
+.need {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.need label {
+  min-width: 4rem;
+  color: #5a4c38;
+}
+
+.need meter {
+  flex: 1 1 6rem;
+  min-width: 0;
+  height: 1rem;
+}
+
+.need-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.resident-pin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.resident-pin label {
+  color: #5a4c38;
+}
+
+.area select {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.5rem;
+}
+
+.area select:disabled,
+.area button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Wish numbers */
+
+.job-targets {
+  margin-top: 1rem;
+}
+
+.job-target-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: 0 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.job-target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid #e4d9c4;
+}
+
+.job-target-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.job-target-name {
+  font-weight: 600;
+}
+
+.job-target-occupancy {
+  font-size: 0.9rem;
+  color: #5a4c38;
+  font-variant-numeric: tabular-nums;
+}
+
+.job-target-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.job-target-value {
+  min-width: 4.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.job-target-value-label {
+  color: #5a4c38;
+}
+
+.job-target-number {
+  font-weight: 700;
+}
+
+.job-target-button {
+  font-weight: 700;
 }

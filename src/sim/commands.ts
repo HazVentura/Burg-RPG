@@ -5,7 +5,7 @@
 import { assignJobs } from "./assignment";
 import { getBuildingDefinition } from "./buildingConstants";
 import type { BuildingType } from "./buildings";
-import type { Job } from "./jobs";
+import { isJob, type Job } from "./jobs";
 import { isAdult } from "./residents";
 import type { GameState } from "./state";
 
@@ -32,7 +32,9 @@ export function orderBuilding(state: GameState, type: BuildingType): OrderResult
   };
 }
 
-export type SetJobTargetResult = { ok: true; state: GameState } | { ok: false; reason: "invalidCount" };
+export type SetJobTargetResult =
+  | { ok: true; state: GameState }
+  | { ok: false; reason: "invalidCount" | "unknownJob" };
 
 /**
  * Sets the wish number of `job` and redistributes at once, so the player sees
@@ -40,6 +42,10 @@ export type SetJobTargetResult = { ok: true; state: GameState } | { ok: false; r
  * workplaces is allowed; the job is then filled as far as possible.
  */
 export function setJobTarget(state: GameState, job: Job, count: number): SetJobTargetResult {
+  // The type says Job, but the UI hands over strings from the DOM; check at runtime.
+  if (!isJob(job)) {
+    return { ok: false, reason: "unknownJob" };
+  }
   // Number.isInteger is false for NaN, Infinity and fractions.
   if (!Number.isInteger(count) || count < 0) {
     return { ok: false, reason: "invalidCount" };
@@ -49,13 +55,16 @@ export function setJobTarget(state: GameState, job: Job, count: number): SetJobT
 
 export type SetPinnedJobResult =
   | { ok: true; state: GameState }
-  | { ok: false; reason: "unknownResident" | "notAdult" };
+  | { ok: false; reason: "unknownResident" | "notAdult" | "unknownJob" };
 
 /**
  * Pins a resident to `job`, or releases the pin with null, and redistributes
  * at once. Releasing is allowed for anyone, so a pin can never get stuck.
  */
 export function setPinnedJob(state: GameState, residentId: number, job: Job | null): SetPinnedJobResult {
+  if (job !== null && !isJob(job)) {
+    return { ok: false, reason: "unknownJob" };
+  }
   const resident = state.residents.find((candidate) => candidate.id === residentId);
   if (resident === undefined) {
     return { ok: false, reason: "unknownResident" };

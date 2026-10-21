@@ -1,17 +1,22 @@
 // The UI reads simulation state and sends commands; it never mutates state directly.
 // Layout: a header with title and clock, then a main with one section per area.
-// The page is built once; afterwards only textContent and aria-pressed change,
-// so buttons keep keyboard focus while the clock runs.
+// The page is built once; afterwards only textContent, aria-pressed, meter
+// values, disabled and select values change, so controls keep keyboard focus
+// while the clock runs.
 
 import { getCalendar } from "../sim/calendar";
+import { setJobTarget, setPinnedJob, type SetJobTargetResult, type SetPinnedJobResult } from "../sim/commands";
 import { GOODS, type Good } from "../sim/goods";
+import { JOBS, type Job } from "../sim/jobs";
 import { tick, type GameState } from "../sim/state";
 import { de } from "../text/de";
 import { advanceClock, createClock, setSpeed, togglePaused, type ClockState } from "./clock";
 import { SPEEDS, type Speed } from "./clockConstants";
 import { formatClock } from "./formatClock";
 import { formatStorage } from "./formatStorage";
+import { formatJobTargets, formatResidentList, type JobTargetRow, type NeedKey, type ResidentRow } from "./formatResidents";
 import { formatBuildingSummary, formatResidentSummary, type SummaryRow } from "./formatSummary";
+import { NEED_BAR_HIGH, NEED_BAR_LOW, NEED_BAR_MAX, NEED_BAR_MIN } from "./residentListConstants";
 
 interface ClockView {
   date: HTMLElement;
@@ -30,6 +35,39 @@ interface SummaryView {
   /** Value elements in the order of the formatter's rows, updated in place. */
   values: HTMLElement[];
 }
+
+/** The elements of one resident card that refresh changes. */
+interface ResidentRowView {
+  item: HTMLLIElement;
+  name: HTMLElement;
+  age: HTMLElement;
+  job: HTMLElement;
+  waitingNote: HTMLElement;
+  needs: Map<NeedKey, { meter: HTMLMeterElement; value: HTMLElement; label: HTMLElement }>;
+  pinLabel: HTMLLabelElement;
+  pinSelect: HTMLSelectElement;
+}
+
+interface ResidentListView {
+  list: HTMLUListElement;
+  /** Keyed by resident id, so a row survives ticks and other residents coming or going. */
+  rows: Map<number, ResidentRowView>;
+  /** Called with the resident id and the raw select value. */
+  onPin: (residentId: number, value: string) => void;
+}
+
+interface JobTargetRowView {
+  target: HTMLElement;
+  occupancy: HTMLElement;
+  decrease: HTMLButtonElement;
+}
+
+interface JobTargetView {
+  rows: Map<Job, JobTargetRowView>;
+}
+
+/** Select value for "Automatisch"; every other option value is a Job. */
+const NO_PIN = "";
 
 export function renderApp(root: HTMLElement, initialState: GameState): void {
   let state = initialState;
@@ -51,6 +89,22 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     de.residents.heading,
     formatResidentSummary(initialState),
   );
+  // Order in the Bewohner area: count, error message, resident list, wish numbers.
+  const commandError = document.createElement("p");
+  commandError.className = "command-error";
+  // The only live region on the page; it only ever speaks after a failed command.
+  commandError.setAttribute("role", "alert");
+  // Handlers read `state` when they run, never a value captured at build time.
+  const residentListView = buildResidentListView((residentId, value) => {
+    // "" is Automatisch; any other string goes to the core as is, which rejects a non-job (unknownJob).
+    const job = value === NO_PIN ? null : (value as Job);
+    runCommand(setPinnedJob(state, residentId, job));
+  });
+  const jobTargetView = buildJobTargetView((job, delta) => {
+    runCommand(setJobTarget(state, job, state.jobTargets[job] + delta));
+  });
+  residentView.section.append(commandError, residentListView.list, jobTargetView.section);
+  residentView.section.classList.add("area-residents");
   const buildingView = buildSummaryView(
     "buildings-heading",
     de.buildings.heading,
@@ -63,8 +117,23 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     updateClockView(view, state, clock);
     updateStorageView(storageView, state);
     updateSummaryView(residentView, formatResidentSummary(state));
+    updateResidentListView(residentListView, formatResidentList(state));
+    updateJobTargetView(jobTargetView, formatJobTargets(state));
     updateSummaryView(buildingView, formatBuildingSummary(state));
   };
+
+  // AC11/AC12: take the new state at once, even while paused; on failure keep
+  // the state and say why. Refreshing in both cases also resets a select whose
+  // value the core refused.
+  function runCommand(result: SetPinnedJobResult | SetJobTargetResult): void {
+    if (result.ok) {
+      state = result.state;
+      commandError.textContent = "";
+    } else {
+      commandError.textContent = de.residentList.commandErrors[result.reason];
+    }
+    refresh();
+  }
 
   view.pauseButton.addEventListener("click", () => {
     clock = togglePaused(clock);
@@ -180,6 +249,135 @@ function buildSummaryView(
   return { section, values };
 }
 
+function buildResidentListView(onPin: ResidentListView["onPin"]): ResidentListView {
+  // Rows are added by the first refresh, so the code never assumes a fixed number of residents.
+  const list = document.createElement("ul");
+  list.className = "resident-list";
+  list.setAttribute("aria-label", de.residentList.listLabel);
+  return { list, rows: new Map(), onPin };
+}
+
+/** One card per resident. Ids in element ids are numbers, so they need no escaping. */
+function buildResidentRow(row: ResidentRow, onPin: ResidentListView["onPin"]): ResidentRowView {
+  const item = document.createElement("li");
+  item.className = "resident";
+
+  const name = document.createElement("h3");
+  name.className = "resident-name";
+
+  const facts = document.createElement("dl");
+  facts.className = "resident-facts";
+  const age = addValue(facts, de.residentList.ageLabel);
+  const jobValue = addValue(facts, de.residentList.jobLabel);
+  const job = document.createElement("span");
+  const waitingNote = document.createElement("span");
+  waitingNote.className = "waiting-note";
+  jobValue.append(job, waitingNote);
+
+  const needsBox = document.createElement("div");
+  needsBox.className = "resident-needs";
+  const needs: ResidentRowView["needs"] = new Map();
+  for (const needRow of row.needs) {
+    const meterId = `need-${row.id}-${needRow.need}`;
+    const need = document.createElement("div");
+    need.className = "need";
+    const label = document.createElement("label");
+    label.htmlFor = meterId;
+    const meter = document.createElement("meter");
+    meter.id = meterId;
+    meter.min = NEED_BAR_MIN;
+    meter.max = NEED_BAR_MAX;
+    meter.low = NEED_BAR_LOW;
+    meter.high = NEED_BAR_HIGH;
+    meter.optimum = NEED_BAR_MAX;
+    const value = document.createElement("span");
+    value.className = "need-value";
+    // The number repeats the bar; hidden from screen readers, which already hear the meter value.
+    value.setAttribute("aria-hidden", "true");
+    need.append(label, meter, value);
+    needsBox.append(need);
+    needs.set(needRow.need, { meter, value, label });
+  }
+
+  const pin = document.createElement("div");
+  pin.className = "resident-pin";
+  const selectId = `pin-${row.id}`;
+  const pinLabel = document.createElement("label");
+  pinLabel.htmlFor = selectId;
+  const pinSelect = document.createElement("select");
+  pinSelect.id = selectId;
+  pinSelect.append(makeOption(NO_PIN, de.residentList.automatic));
+  for (const jobOption of JOBS) {
+    pinSelect.append(makeOption(jobOption, de.jobs[jobOption]));
+  }
+  const residentId = row.id;
+  pinSelect.addEventListener("change", () => onPin(residentId, pinSelect.value));
+  pin.append(pinLabel, pinSelect);
+
+  item.append(name, facts, needsBox, pin);
+  return { item, name, age, job, waitingNote, needs, pinLabel, pinSelect };
+}
+
+function makeOption(value: string, text: string): HTMLOptionElement {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = text;
+  return option;
+}
+
+function buildJobTargetView(
+  onChange: (job: Job, delta: 1 | -1) => void,
+): JobTargetView & { section: HTMLElement } {
+  const section = document.createElement("div");
+  section.className = "job-targets";
+  const heading = document.createElement("h3");
+  heading.textContent = de.jobTargets.heading;
+  const list = document.createElement("ul");
+  list.className = "job-target-list";
+
+  const rows = new Map<Job, JobTargetRowView>();
+  for (const job of JOBS) {
+    const item = document.createElement("li");
+    item.className = "job-target";
+
+    const text = document.createElement("div");
+    text.className = "job-target-text";
+    const name = document.createElement("span");
+    name.className = "job-target-name";
+    name.textContent = de.jobs[job];
+    const occupancy = document.createElement("span");
+    occupancy.className = "job-target-occupancy";
+    text.append(name, occupancy);
+
+    const stepper = document.createElement("div");
+    stepper.className = "job-target-stepper";
+    const decrease = makeButton("job-target-button");
+    decrease.textContent = de.jobTargets.decreaseSymbol;
+    decrease.setAttribute("aria-label", `${de.jobs[job]}: ${de.jobTargets.decrease}`);
+    decrease.addEventListener("click", () => onChange(job, -1));
+    const value = document.createElement("span");
+    value.className = "job-target-value";
+    const valueLabel = document.createElement("span");
+    valueLabel.className = "job-target-value-label";
+    valueLabel.textContent = de.jobTargets.targetLabel;
+    const target = document.createElement("span");
+    target.className = "job-target-number";
+    value.append(valueLabel, " ", target);
+    const increase = makeButton("job-target-button");
+    increase.textContent = de.jobTargets.increaseSymbol;
+    increase.setAttribute("aria-label", `${de.jobs[job]}: ${de.jobTargets.increase}`);
+    increase.addEventListener("click", () => onChange(job, 1));
+    stepper.append(decrease, value, increase);
+
+    item.append(text, stepper);
+    list.append(item);
+    rows.set(job, { target, occupancy, decrease });
+  }
+
+  section.append(heading, list);
+  return { section, rows };
+}
+
 function addValue(list: HTMLDListElement, label: string): HTMLElement {
   const item = document.createElement("div");
   const term = document.createElement("dt");
@@ -225,4 +423,65 @@ function updateSummaryView(view: SummaryView, rows: readonly SummaryRow[]): void
       value.textContent = row.value;
     }
   });
+}
+
+/**
+ * Adds rows for new ids and removes rows for gone ids; every other row is
+ * updated in place and never moved, so a focused or open select survives.
+ */
+function updateResidentListView(view: ResidentListView, rows: readonly ResidentRow[]): void {
+  const present = new Set<number>();
+  let previous: HTMLElement | null = null;
+  for (const row of rows) {
+    present.add(row.id);
+    let rowView = view.rows.get(row.id);
+    if (rowView === undefined) {
+      rowView = buildResidentRow(row, view.onPin);
+      view.rows.set(row.id, rowView);
+      if (previous === null) {
+        view.list.prepend(rowView.item);
+      } else {
+        previous.after(rowView.item);
+      }
+    }
+    updateResidentRow(rowView, row);
+    previous = rowView.item;
+  }
+  for (const [id, rowView] of view.rows) {
+    if (!present.has(id)) {
+      rowView.item.remove();
+      view.rows.delete(id);
+    }
+  }
+}
+
+function updateResidentRow(view: ResidentRowView, row: ResidentRow): void {
+  view.name.textContent = row.name;
+  view.age.textContent = row.ageText;
+  view.job.textContent = row.jobText;
+  view.waitingNote.textContent = row.waitingNote ?? "";
+  for (const needRow of row.needs) {
+    const need = view.needs.get(needRow.need);
+    if (need === undefined) continue;
+    need.label.textContent = needRow.label;
+    need.meter.value = needRow.value;
+    need.value.textContent = needRow.valueText;
+  }
+  view.pinLabel.textContent = row.pinLabel;
+  view.pinSelect.disabled = !row.canPin;
+  const wanted = row.pinnedJob ?? NO_PIN;
+  // Only on a real difference: setting the value of an open select would reset it.
+  if (view.pinSelect.value !== wanted) {
+    view.pinSelect.value = wanted;
+  }
+}
+
+function updateJobTargetView(view: JobTargetView, rows: readonly JobTargetRow[]): void {
+  for (const row of rows) {
+    const rowView = view.rows.get(row.job);
+    if (rowView === undefined) continue;
+    rowView.target.textContent = String(row.target);
+    rowView.occupancy.textContent = row.occupancyText;
+    rowView.decrease.disabled = !row.canDecrease;
+  }
 }
