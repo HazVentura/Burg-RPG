@@ -1,4 +1,5 @@
 // The UI reads simulation state and sends commands; it never mutates state directly.
+// Layout: a header with title and clock, then a main with one section per area.
 // The page is built once; afterwards only textContent and aria-pressed change,
 // so buttons keep keyboard focus while the clock runs.
 
@@ -10,6 +11,7 @@ import { advanceClock, createClock, setSpeed, togglePaused, type ClockState } fr
 import { SPEEDS, type Speed } from "./clockConstants";
 import { formatClock } from "./formatClock";
 import { formatStorage } from "./formatStorage";
+import { formatBuildingSummary, formatResidentSummary, type SummaryRow } from "./formatSummary";
 
 interface ClockView {
   date: HTMLElement;
@@ -24,24 +26,44 @@ interface StorageView {
   amounts: Map<Good, HTMLElement>;
 }
 
+interface SummaryView {
+  /** Value elements in the order of the formatter's rows, updated in place. */
+  values: HTMLElement[];
+}
+
 export function renderApp(root: HTMLElement, initialState: GameState): void {
   let state = initialState;
   let clock: ClockState = createClock();
 
-  const main = document.createElement("main");
+  const header = document.createElement("header");
+  header.className = "page-header";
   const title = document.createElement("h1");
   title.textContent = de.title;
-  const tagline = document.createElement("p");
-  tagline.textContent = de.tagline;
-
   const view = buildClockView();
+  header.append(title, view.section);
+
+  // Areas in DOM order Lager, Bewohner, Gebäude; on a phone they stack in this order.
+  const main = document.createElement("main");
+  main.className = "areas";
   const storageView = buildStorageView();
-  main.append(title, tagline, view.section, storageView.section);
-  root.replaceChildren(main);
+  const residentView = buildSummaryView(
+    "residents-heading",
+    de.residents.heading,
+    formatResidentSummary(initialState),
+  );
+  const buildingView = buildSummaryView(
+    "buildings-heading",
+    de.buildings.heading,
+    formatBuildingSummary(initialState),
+  );
+  main.append(storageView.section, residentView.section, buildingView.section);
+  root.replaceChildren(header, main);
 
   const refresh = (): void => {
     updateClockView(view, state, clock);
     updateStorageView(storageView, state);
+    updateSummaryView(residentView, formatResidentSummary(state));
+    updateSummaryView(buildingView, formatBuildingSummary(state));
   };
 
   view.pauseButton.addEventListener("click", () => {
@@ -86,7 +108,7 @@ function startLoop(onFrame: (elapsedMs: number) => void): void {
 
 function buildClockView(): ClockView & { section: HTMLElement } {
   const section = document.createElement("section");
-  section.className = "clock";
+  section.className = "panel clock";
   section.setAttribute("aria-label", de.clock.sectionLabel);
 
   // Deliberately no aria-live: hourly updates would interrupt screen readers.
@@ -119,24 +141,43 @@ function buildClockView(): ClockView & { section: HTMLElement } {
   return { section, date, season, time, pauseButton, speedButtons };
 }
 
-function buildStorageView(): StorageView & { section: HTMLElement } {
+/** An area panel: a section labelled by its own h2, with an empty value list below. */
+function buildArea(headingId: string, headingText: string): { section: HTMLElement; list: HTMLDListElement } {
   const section = document.createElement("section");
-  section.className = "storage";
+  section.className = "panel area";
   const heading = document.createElement("h2");
-  heading.id = "storage-heading";
-  heading.textContent = de.storage.heading;
+  heading.id = headingId;
+  heading.textContent = headingText;
   section.setAttribute("aria-labelledby", heading.id);
 
-  // Deliberately no aria-live, like the clock: stock changes every hour later on.
+  // Deliberately no aria-live, like the clock: values change every hour.
   const list = document.createElement("dl");
-  list.className = "storage-values";
+  list.className = "value-list";
+  section.append(heading, list);
+  return { section, list };
+}
+
+function buildStorageView(): StorageView & { section: HTMLElement } {
+  const { section, list } = buildArea("storage-heading", de.storage.heading);
   const amounts = new Map<Good, HTMLElement>();
   for (const good of GOODS) {
     amounts.set(good, addValue(list, de.goods[good]));
   }
-
-  section.append(heading, list);
   return { section, amounts };
+}
+
+/**
+ * Builds one value pair per row. The labels are fixed at build time; the
+ * formatter always returns the same rows, so refresh only changes the values.
+ */
+function buildSummaryView(
+  headingId: string,
+  headingText: string,
+  rows: readonly SummaryRow[],
+): SummaryView & { section: HTMLElement } {
+  const { section, list } = buildArea(headingId, headingText);
+  const values = rows.map((row) => addValue(list, row.label));
+  return { section, values };
 }
 
 function addValue(list: HTMLDListElement, label: string): HTMLElement {
@@ -175,4 +216,13 @@ function updateStorageView(view: StorageView, state: GameState): void {
       amount.textContent = row.amount;
     }
   }
+}
+
+function updateSummaryView(view: SummaryView, rows: readonly SummaryRow[]): void {
+  rows.forEach((row, index) => {
+    const value = view.values[index];
+    if (value !== undefined) {
+      value.textContent = row.value;
+    }
+  });
 }

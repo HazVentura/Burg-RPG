@@ -33,7 +33,6 @@ const goods: Record<Good, string> = {
 
 export const de = {
   title: "Burg-RPG",
-  tagline: "Eine mittelalterliche Burg, deren Berufe voneinander abhängen.",
   seasons,
   clock: {
     sectionLabel: "Spieluhr",
@@ -51,5 +50,14 @@ export const de = {
   goods,
   storage: {
     heading: "Lager",
+  },
+  residents: {
+    heading: "Bewohner",
+    countLabel: "Anzahl",
+  },
+  buildings: {
+    heading: "Gebäude",
+    finishedLabel: "Fertig",
+    underConstructionLabel: "Im Bau",
   },
 } as const;
