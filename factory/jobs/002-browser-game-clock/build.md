@@ -1,0 +1,34 @@
+# Build: 002-browser-game-clock
+
+## Round 1
+- What changed:
+  - `src/ui/clockConstants.ts` (new): `REAL_MS_PER_GAME_DAY`, `MS_PER_TICK` derived from `HOURS_PER_DAY`, `SPEEDS`, `Speed` type, `MAX_ELAPSED_MS_PER_UPDATE`.
+  - `src/ui/clock.ts` (new): pure `ClockState`, `createClock`, `advanceClock`, `setPaused`, `togglePaused`, `setSpeed`; carry is stored in 1x milliseconds.
+  - `src/ui/formatClock.ts` (new): pure `formatClock(calendar)` returning date/season/time strings.
+  - `src/text/de.ts`: season names as `Record<Season, string>`, speed labels as `Record<Speed, string>`, clock labels and button texts (plus section name "Spieluhr" used as the section's aria-label).
+  - `src/ui/app.ts`: builds the page once with `createElement`, keeps refs to values and buttons, updates only `textContent`/`aria-pressed`; rAF loop using the rAF timestamp.
+  - `src/ui/styles.css` (new): layout for 360 px, 44 px minimum buttons, focus ring, active speed bold + underlined + dark background.
+  - `src/main.ts`: creates `createInitialState(GAME_SEED)` (fixed seed 1, UI layer), imports styles, calls `renderApp`.
+  - `tests/clock.test.ts`, `tests/formatClock.test.ts` (new).
+- AC1: `tests/clock.test.ts` "createClock starts running at speed 1 with no carry", "is plain data that survives JSON"
+- AC2: `tests/clock.test.ts` "does not mutate its input" (frozen input); `src/ui/clock.ts` reads no time source
+- AC3: `tests/clock.test.ts` "speed %i gives %i ticks per real minute in 100 ms steps", "gives 0 ticks after 2 499 ms and 1 tick after 2 500 ms at speed 1" (2 499 ms fed in chunks below the 1 000 ms cap)
+- AC4: `tests/clock.test.ts` "keeps leftover time across a speed change", "does not lose time to frame size"
+- AC5: `tests/clock.test.ts` "returns 0 ticks and keeps the carry", "does not build up 10 minutes of paused time"
+- AC6: `tests/clock.test.ts` describe "setPaused, togglePaused and setSpeed"
+- AC7: `tests/clock.test.ts` "caps one long update at speed 4 to exactly 1 tick", "treats anything above the cap as the cap", "counts %s ms as 0 and keeps the carry" (negative, NaN, +/-Infinity)
+- AC8: `src/ui/clockConstants.ts`; `tests/clock.test.ts` "clock constants match the vision"
+- AC9: `src/text/de.ts`; `tests/formatClock.test.ts` "German season names cover every season"
+- AC10: `tests/formatClock.test.ts` describe "formatClock" (initial state, hour padding 0/7/23, day 10, summer/autumn/winter, year 2 at 960 ticks)
+- AC11: `src/main.ts` (seed constant `GAME_SEED` in UI layer); no changes in `src/sim/`
+- AC12: `src/ui/app.ts` `startLoop` (rAF timestamp, first frame 0 ms) and the loop callback in `renderApp` (`state = tick(state)` `ticks` times)
+- AC13: `src/ui/app.ts` `buildClockView`/`updateClockView`, initial `refresh()` before the loop starts
+- AC14: `src/ui/app.ts` `updateClockView` sets "Pause"/"Weiter"; click calls `togglePaused`
+- AC15: `src/ui/app.ts` speed group `role="group"` + `aria-label="Tempo"`, `aria-pressed`; `src/ui/styles.css` `.clock-speed[aria-pressed="true"]`; `setSpeed` keeps paused (tested)
+- AC16: `src/ui/app.ts` `makeButton` (`type="button"`); buttons built once, only `textContent`/`aria-pressed` change
+- AC17: no `aria-live` anywhere in the clock section (`src/ui/app.ts` comment in `buildClockView`)
+- AC18: `src/ui/styles.css` (flex-wrap, `box-sizing`, `min-width/min-height: 44px`); estimated control row width ~275 px inside 328 px content width
+- AC19: `npm test` and `npm run build` pass; `package.json` unchanged
+- Assumptions taken from the spec: the game starts running at 1x; choosing a speed does not resume a paused game.
+- Not verified in a real browser (no browser available to the agent); `npm run build` succeeds and the page code was checked by reading.
+- Test run: `npm test`, 68 tests (5 files), all passing; `npm run build` passes
