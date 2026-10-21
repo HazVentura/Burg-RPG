@@ -5,6 +5,7 @@
 // the clock. So tick never has to touch residents for them to age, and a
 // newborn later only needs bornAtHour = state.elapsedHours.
 
+import { createFullNeeds, type Needs } from "./needs";
 import { pickName } from "./names";
 import type { Random } from "./random";
 import { START_AGE_MAX_YEARS, START_AGE_MIN_YEARS, START_COUPLES } from "./residentConstants";
@@ -24,6 +25,8 @@ export interface Resident {
   bornAtHour: number;
   /** id of the partner, or null without a partner. */
   partnerId: number | null;
+  /** Food and drink supply; changed once per game day by consumeDailyFood. */
+  needs: Needs;
 }
 
 /** Completed game years of `resident` at the given elapsed hours. */
@@ -76,6 +79,8 @@ function createSettler(
     sex,
     bornAtHour: -(ageYears * HOURS_PER_YEAR + birthDayOffset * HOURS_PER_DAY),
     partnerId,
+    // Not drawn: settlers start fully fed, so the seeded draw order stays unchanged.
+    needs: createFullNeeds(),
   };
 }
 

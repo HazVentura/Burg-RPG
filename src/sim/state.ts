@@ -3,9 +3,11 @@
 // it with JSON.stringify and restore it unchanged.
 
 import type { Storage } from "./goods";
+import { consumeDailyFood } from "./needs";
 import { createRandom } from "./random";
 import { createSettlers, type Resident } from "./residents";
 import { INITIAL_STORAGE } from "./storageConstants";
+import { HOURS_PER_DAY } from "./timeConstants";
 
 export interface GameState {
   /** Game hours since the start of the game; one tick adds one hour. */
@@ -37,10 +39,16 @@ export function createInitialState(seed: number): GameState {
 /**
  * Advances the game by one hour. Returns a new state, never mutates the input.
  * Unchanged nested objects such as storage and residents are shared with the input, not copied.
+ * On the step into hour 0 of a new day, residents eat and drink (consumeDailyFood).
  */
 export function tick(state: GameState): GameState {
-  return {
+  const advanced: GameState = {
     ...state,
     elapsedHours: state.elapsedHours + 1,
   };
+  if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {
+    return advanced;
+  }
+  const { residents, storage } = consumeDailyFood(advanced.residents, advanced.storage);
+  return { ...advanced, residents, storage };
 }

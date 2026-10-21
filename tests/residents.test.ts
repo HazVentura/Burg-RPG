@@ -1,4 +1,5 @@
 import { GIVEN_NAMES } from "../src/sim/names";
+import { NEED_MAX } from "../src/sim/needConstants";
 import { createRandom } from "../src/sim/random";
 import { START_AGE_MAX_YEARS, START_AGE_MIN_YEARS, START_COUPLES } from "../src/sim/residentConstants";
 import { getAgeYears, SEXES, type Resident } from "../src/sim/residents";
@@ -51,6 +52,7 @@ describe("getAgeYears", () => {
     sex: "female",
     bornAtHour: -5 * HOURS_PER_YEAR,
     partnerId: null,
+    needs: { bread: NEED_MAX, water: NEED_MAX },
   };
 
   it("counts completed game years", () => {
@@ -77,7 +79,7 @@ describe("starting settlers", () => {
 
   it("has exactly these fields on every resident", () => {
     for (const resident of createInitialState(SEED).residents) {
-      expect(Object.keys(resident).sort()).toEqual(["bornAtHour", "id", "name", "partnerId", "sex"]);
+      expect(Object.keys(resident).sort()).toEqual(["bornAtHour", "id", "name", "needs", "partnerId", "sex"]);
     }
   });
 
@@ -229,10 +231,12 @@ describe("settler determinism and isolation", () => {
 
 describe("residents over time", () => {
   it("leaves residents, nextResidentId and rngState unchanged over 960 ticks", () => {
+    // Only needs change over time (daily food and drink); everything else about a resident stays.
     const initial = createInitialState(SEED);
     const before = structuredClone(initial);
     const later = tickTimes(initial, HOURS_PER_YEAR);
-    expect(later.residents).toEqual(before.residents);
+    const withoutNeeds = (residents: readonly Resident[]) => residents.map(({ needs: _needs, ...rest }) => rest);
+    expect(withoutNeeds(later.residents)).toEqual(withoutNeeds(before.residents));
     expect(later.nextResidentId).toBe(before.nextResidentId);
     expect(later.rngState).toBe(before.rngState);
     expect(initial).toEqual(before);
