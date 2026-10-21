@@ -1,5 +1,6 @@
 import { createRandom } from "../src/sim/random";
 import { INITIAL_STORAGE } from "../src/sim/storageConstants";
+import { createSettlers } from "../src/sim/residents";
 import { createInitialState, tick, type GameState } from "../src/sim/state";
 
 const SEED = 42;
@@ -17,17 +18,34 @@ describe("createInitialState", () => {
     expect(createInitialState(SEED).elapsedHours).toBe(0);
   });
 
-  it("stores the random generator state for the seed", () => {
-    expect(createInitialState(SEED).rngState).toBe(createRandom(SEED).seed);
-    expect(createInitialState(SEED).rngState).toBe(42);
+  it("stores the generator state after the settler draws", () => {
+    // The same draws on a fresh generator end in the same state.
+    const random = createRandom(SEED);
+    createSettlers(random);
+    expect(createInitialState(SEED).rngState).toBe(random.seed);
   });
 
-  it("maps a seed of 0 to rngState 0", () => {
-    expect(createInitialState(0).rngState).toBe(0);
+  it("keeps rngState a 32-bit unsigned integer, also for seeds 0 and -1", () => {
+    for (const seed of [SEED, 0, -1]) {
+      const { rngState } = createInitialState(seed);
+      expect(Number.isInteger(rngState)).toBe(true);
+      expect(rngState).toBeGreaterThanOrEqual(0);
+      expect(rngState).toBeLessThanOrEqual(4294967295);
+    }
   });
 
-  it("maps a negative seed to its unsigned 32-bit value", () => {
-    expect(createInitialState(-1).rngState).toBe(4294967295);
+  it("gives a deterministic rngState per seed, also for seeds 0 and -1", () => {
+    for (const seed of [SEED, 0, -1]) {
+      expect(createInitialState(seed).rngState).toBe(createInitialState(seed).rngState);
+    }
+  });
+
+  it("continues the random sequence where settler creation stopped", () => {
+    for (const seed of [SEED, 0, -1]) {
+      const random = createRandom(seed);
+      createSettlers(random);
+      expect(createRandom(createInitialState(seed).rngState).next()).toBe(random.next());
+    }
   });
 
   it("gives deep-equal states for the same seed", () => {
@@ -82,7 +100,14 @@ describe("tick", () => {
       expect(next).not.toBe(current);
       current = next;
     }
-    expect(current).toEqual({ elapsedHours: 960, rngState: 42, storage: { ...INITIAL_STORAGE } });
+    const initial = createInitialState(SEED);
+    expect(current).toEqual({
+      elapsedHours: 960,
+      rngState: initial.rngState,
+      storage: { ...INITIAL_STORAGE },
+      residents: initial.residents,
+      nextResidentId: 9,
+    });
   });
 
   it("gives the same result when a run of 960 ticks is repeated", () => {
@@ -112,8 +137,14 @@ describe("GameState serialization", () => {
   it("is a plain object holding finite numbers and a plain storage object", () => {
     const state = tickTimes(createInitialState(-1), 100);
     expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
-    expect(Object.keys(state).sort()).toEqual(["elapsedHours", "rngState", "storage"]);
-    for (const value of [state.elapsedHours, state.rngState]) {
+    expect(Object.keys(state).sort()).toEqual([
+      "elapsedHours",
+      "nextResidentId",
+      "residents",
+      "rngState",
+      "storage",
+    ]);
+    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId]) {
       expect(typeof value).toBe("number");
       expect(Number.isFinite(value)).toBe(true);
     }

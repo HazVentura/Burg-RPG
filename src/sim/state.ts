@@ -4,6 +4,7 @@
 
 import type { Storage } from "./goods";
 import { createRandom } from "./random";
+import { createSettlers, type Resident } from "./residents";
 import { INITIAL_STORAGE } from "./storageConstants";
 
 export interface GameState {
@@ -13,20 +14,29 @@ export interface GameState {
   rngState: number;
   /** Central castle storage: the stock of every good. */
   storage: Storage;
+  /** All residents in creation order. */
+  residents: Resident[];
+  /** id for the next new resident; only ever grows, so ids are never reused. */
+  nextResidentId: number;
 }
 
 export function createInitialState(seed: number): GameState {
+  // One generator for all settler draws; its final state continues the sequence.
+  const random = createRandom(seed);
+  const { residents, nextResidentId } = createSettlers(random);
   return {
     elapsedHours: 0,
-    rngState: createRandom(seed).seed,
+    rngState: random.seed,
     // A copy, so changes in one game never leak into the constant or another game.
     storage: { ...INITIAL_STORAGE },
+    residents,
+    nextResidentId,
   };
 }
 
 /**
  * Advances the game by one hour. Returns a new state, never mutates the input.
- * Unchanged nested objects such as storage are shared with the input, not copied.
+ * Unchanged nested objects such as storage and residents are shared with the input, not copied.
  */
 export function tick(state: GameState): GameState {
   return {
