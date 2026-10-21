@@ -71,7 +71,25 @@
       "builder": "builder-004-residents-as-individuals",
       "decision": "APPROVE",
       "updated": "2026-10-21T04:37:12Z"
+    },
+    {
+      "id": "005-food-and-drink",
+      "title": "Essen und Trinken",
+      "branch": "factory/005-food-and-drink",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-005-food-and-drink",
+      "decision": "APPROVE",
+      "updated": "2026-10-21T04:50:52Z"
     }
   ],
-  "updated": "2026-10-21T04:37:12Z"
+  "updated": "2026-10-21T04:50:52Z"
 }
