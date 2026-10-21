@@ -1,0 +1,31 @@
+# Build: 003-castle-storage
+
+## Round 1
+- What changed:
+  - `src/sim/goods.ts` (new): `GOODS` as const array, derived `Good`, `Storage = Record<Good, number>`.
+  - `src/sim/storageConstants.ts` (new): `INITIAL_STORAGE: Readonly<Storage>`, frozen, start values from vision section 10.
+  - `src/sim/state.ts`: `GameState.storage`, filled with `{ ...INITIAL_STORAGE }`; `tick` unchanged (spread keeps the storage reference, nothing mutates it).
+  - `src/text/de.ts`: `goods: Record<Good, string>` with German names, `storage.heading: "Lager"`.
+  - `src/ui/formatStorage.ts` (new): pure `formatStorage(storage)` returns `{ good, name, amount }` rows in `GOODS` order, amounts `Math.floor`ed.
+  - `src/ui/app.ts`: `buildStorageView` builds the panel once (section with `h2#storage-heading` + `aria-labelledby`, `<dl>` with `<dt>`/`<dd>` per good, `Map<Good, HTMLElement>`); `refresh` also calls `updateStorageView`, which sets only `textContent`.
+  - `src/ui/styles.css`: `.storage` panel with the clock's border, radius, padding and background; 2-column grid (`minmax(8rem, 1fr)`, fits 294 px content width at 360 px viewport); tabular digits on amounts.
+  - `tests/state.test.ts`: adapted the 960-tick deep-equal and the "plain object" test to the new shape (still checks finite numbers, now also the nested storage).
+  - `tests/storage.test.ts`, `tests/formatStorage.test.ts` (new).
+- AC1: `src/sim/goods.ts`; tests/storage.test.ts "lists the eight goods in display order", "has no duplicates", "derives the Good type from the array"
+- AC2: `src/sim/goods.ts`, `src/sim/state.ts`; existing tests in tests/state.test.ts for elapsedHours/rngState still pass unchanged
+- AC3: tests/storage.test.ts "fills storage with the start values", "has exactly one entry per good and no other keys"
+- AC4: `src/sim/storageConstants.ts`; tests/storage.test.ts "holds the start values from vision section 10", "is frozen so no game can change it", "takes its values from INITIAL_STORAGE"
+- AC5: tests/storage.test.ts "returns a fresh storage object on every call"
+- AC6: tests/storage.test.ts "leaves the storage unchanged over 960 ticks", "does not mutate the input storage"; tests/state.test.ts "does not mutate any state over 960 ticks"
+- AC7: tests/storage.test.ts "survives a JSON round trip with the nested storage", "keeps every amount a finite, non-negative number"; tests/state.test.ts "is a plain object holding finite numbers and a plain storage object"
+- AC8: `src/text/de.ts`; tests/formatStorage.test.ts "names every good", "names the storage panel"
+- AC9: `src/ui/formatStorage.ts`; tests/formatStorage.test.ts "shows the initial storage in GOODS order with German names", "rounds fractional amounts down" (12.9 -> "12", 0.5 -> "0")
+- AC10: `src/ui/app.ts:122` (`buildStorageView`, `aria-labelledby` at :128), appended after the clock section at :39; initial `refresh()` shows start values
+- AC11: `<dl>`/`<dt>`/`<dd>` via `addValue`; `font-variant-numeric: tabular-nums` on `.storage-values dd` in styles.css
+- AC12: panel built once; `updateStorageView` (`src/ui/app.ts:171`) only sets `textContent`; clock view untouched; no `aria-live`
+- AC13: UI only reads `state.storage` through `formatStorage`; `textContent` at `src/ui/app.ts:175`, no `innerHTML`
+- AC14: `.storage` in `src/ui/styles.css` reuses the clock's frame values; grid columns min 8rem so two columns fit at 360 px, no fixed widths
+- AC15: see above; `npm test` and `npm run build` pass; `package.json` unchanged
+- Assumptions kept from the spec: identifiers `ironOre` and `tools`; display rounds down.
+- Not verified in a real browser (no browser in this environment); AC10/AC11/AC14 checked by reading code and CSS arithmetic.
+- Test run: `npm test`, 87 tests, all passing; `npm run build` passes.
