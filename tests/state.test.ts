@@ -106,7 +106,7 @@ describe("tick", () => {
       elapsedHours: 960,
       rngState: initial.rngState,
       storage: { ...INITIAL_STORAGE, bread: 0, water: 0 },
-      residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 } })),
+      residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 }, workplaceId: null })),
       nextResidentId: 9,
       buildings: [
         { id: 1, type: "house", hoursLeft: 0 },

@@ -6,6 +6,7 @@ import { START_HOUSES } from "./buildingConstants";
 import { advanceConstruction, type Building } from "./buildings";
 import type { Storage } from "./goods";
 import { consumeDailyFood } from "./needs";
+import { produceHour } from "./production";
 import { createRandom } from "./random";
 import { createSettlers, type Resident } from "./residents";
 import { INITIAL_STORAGE } from "./storageConstants";
@@ -51,14 +52,20 @@ export function createInitialState(seed: number): GameState {
 
 /**
  * Advances the game by one hour. Returns a new state, never mutates the input.
- * Unchanged nested objects such as storage and residents are shared with the input, not copied.
- * Every tick, all buildings under construction get 1 hour closer to done.
- * On the step into hour 0 of a new day, residents eat and drink (consumeDailyFood).
+ * Unchanged nested objects such as residents are shared with the input, not copied;
+ * storage is a fresh copy every tick, since production writes to it.
+ * Order per tick:
+ * 1. Production on the buildings as they are at the start of the tick, so a
+ *    building finished in this tick works from the next one (produceHour).
+ * 2. All buildings under construction get 1 hour closer to done.
+ * 3. On the step into hour 0 of a new day, residents eat and drink
+ *    (consumeDailyFood), including what was made in this last hour.
  */
 export function tick(state: GameState): GameState {
   const advanced: GameState = {
     ...state,
     elapsedHours: state.elapsedHours + 1,
+    storage: produceHour(state.buildings, state.residents, state.storage),
     buildings: advanceConstruction(state.buildings),
   };
   if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {

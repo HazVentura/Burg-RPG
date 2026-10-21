@@ -23,7 +23,7 @@ function tickTimes(state: GameState, count: number): GameState {
 }
 
 function makeResident(id: number, needs: Needs): Resident {
-  return { id, name: `R${id}`, sex: id % 2 === 1 ? "female" : "male", bornAtHour: -5 * HOURS_PER_YEAR, partnerId: null, needs };
+  return { id, name: `R${id}`, sex: id % 2 === 1 ? "female" : "male", bornAtHour: -5 * HOURS_PER_YEAR, partnerId: null, needs, workplaceId: null };
 }
 
 function makeStorage(bread: number, water: number): Storage {
@@ -83,7 +83,7 @@ describe("starting needs", () => {
     // Values recorded from main before this job (seed 42).
     const state = createInitialState(SEED);
     expect(state.rngState).toBe(1007906594);
-    expect(state.residents.map(({ needs: _needs, ...rest }) => rest)).toEqual([
+    expect(state.residents.map(({ needs: _needs, workplaceId: _workplaceId, ...rest }) => rest)).toEqual([
       { id: 1, name: "Mechthild", sex: "female", bornAtHour: -7536, partnerId: 2 },
       { id: 2, name: "Rudolf", sex: "male", bornAtHour: -6264, partnerId: 1 },
       { id: 3, name: "Gertrud", sex: "female", bornAtHour: -8496, partnerId: 4 },
