@@ -108,6 +108,11 @@ describe("tick", () => {
       storage: { ...INITIAL_STORAGE, bread: 0, water: 0 },
       residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 } })),
       nextResidentId: 9,
+      buildings: [
+        { id: 1, type: "house", hoursLeft: 0 },
+        { id: 2, type: "house", hoursLeft: 0 },
+      ],
+      nextBuildingId: 3,
     });
   });
 
@@ -139,13 +144,15 @@ describe("GameState serialization", () => {
     const state = tickTimes(createInitialState(-1), 100);
     expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
     expect(Object.keys(state).sort()).toEqual([
+      "buildings",
       "elapsedHours",
+      "nextBuildingId",
       "nextResidentId",
       "residents",
       "rngState",
       "storage",
     ]);
-    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId]) {
+    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId, state.nextBuildingId]) {
       expect(typeof value).toBe("number");
       expect(Number.isFinite(value)).toBe(true);
     }

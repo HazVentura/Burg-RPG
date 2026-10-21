@@ -32,7 +32,15 @@ function makeStorage(bread: number, water: number): Storage {
 
 /** A hand-made state at hour 23, so the next tick is a consumption tick. */
 function stateBeforeMidnight(residents: Resident[], storage: Storage): GameState {
-  return { elapsedHours: HOURS_PER_DAY - 1, rngState: 123, storage, residents, nextResidentId: 100 };
+  return {
+    elapsedHours: HOURS_PER_DAY - 1,
+    rngState: 123,
+    storage,
+    residents,
+    nextResidentId: 100,
+    buildings: [],
+    nextBuildingId: 1,
+  };
 }
 
 const breadNeeds = (state: { residents: readonly Resident[] }) => state.residents.map((r) => r.needs.bread);
@@ -89,9 +97,11 @@ describe("starting needs", () => {
     expect(createInitialState(-1).rngState).toBe(1007906551);
   });
 
-  it("adds no top-level field to GameState", () => {
+  it("adds no top-level field to GameState beyond the buildings fields", () => {
     expect(Object.keys(createInitialState(SEED)).sort()).toEqual([
+      "buildings",
       "elapsedHours",
+      "nextBuildingId",
       "nextResidentId",
       "residents",
       "rngState",
