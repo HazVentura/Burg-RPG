@@ -2,6 +2,8 @@
 // GameState is plain JSON-compatible data so that later save games can store
 // it with JSON.stringify and restore it unchanged.
 
+import { START_HOUSES } from "./buildingConstants";
+import { advanceConstruction, type Building } from "./buildings";
 import type { Storage } from "./goods";
 import { consumeDailyFood } from "./needs";
 import { createRandom } from "./random";
@@ -20,6 +22,15 @@ export interface GameState {
   residents: Resident[];
   /** id for the next new resident; only ever grows, so ids are never reused. */
   nextResidentId: number;
+  /** All buildings, finished or under construction, in creation order. */
+  buildings: Building[];
+  /** id for the next new building; only ever grows, so ids are never reused. */
+  nextBuildingId: number;
+}
+
+/** The free starting houses with ids 1..START_HOUSES; fresh objects on every call. */
+function createStartHouses(): Building[] {
+  return Array.from({ length: START_HOUSES }, (_, index): Building => ({ id: index + 1, type: "house", hoursLeft: 0 }));
 }
 
 export function createInitialState(seed: number): GameState {
@@ -33,18 +44,22 @@ export function createInitialState(seed: number): GameState {
     storage: { ...INITIAL_STORAGE },
     residents,
     nextResidentId,
+    buildings: createStartHouses(),
+    nextBuildingId: START_HOUSES + 1,
   };
 }
 
 /**
  * Advances the game by one hour. Returns a new state, never mutates the input.
  * Unchanged nested objects such as storage and residents are shared with the input, not copied.
+ * Every tick, all buildings under construction get 1 hour closer to done.
  * On the step into hour 0 of a new day, residents eat and drink (consumeDailyFood).
  */
 export function tick(state: GameState): GameState {
   const advanced: GameState = {
     ...state,
     elapsedHours: state.elapsedHours + 1,
+    buildings: advanceConstruction(state.buildings),
   };
   if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {
     return advanced;
