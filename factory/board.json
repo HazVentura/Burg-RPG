@@ -161,7 +161,25 @@
       "builder": "builder-009-admin-ui-layout",
       "decision": "APPROVE (human)",
       "updated": "2026-10-21T05:31:26Z"
+    },
+    {
+      "id": "010-resident-list",
+      "title": "Bewohnerliste",
+      "branch": "factory/010-resident-list",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-010-resident-list",
+      "decision": "APPROVE",
+      "updated": "2026-10-21T06:13:21Z"
     }
   ],
-  "updated": "2026-10-21T05:31:26Z"
+  "updated": "2026-10-21T06:13:21Z"
 }

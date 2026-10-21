@@ -1,0 +1,32 @@
+# Build: 010-resident-list
+
+## Round 1
+- What changed:
+  - `src/sim/jobs.ts`: new `isJob(value)` runtime check (AC1).
+  - `src/sim/commands.ts`: `setJobTarget` and `setPinnedJob` reject non-jobs with `unknownJob`; the new reason is added to both result unions (AC1). No other change to either command.
+  - `src/text/de.ts`: `jobs` (`Record<Job, string>`), `needs` (`Record<keyof Needs, string>`), `residentList`, `jobTargets`, and `commandErrors` keyed by `CommandFailure`, which is derived from the command result unions. These go under new keys, so `de.residents` stays exactly as the job 009 test expects.
+  - `src/ui/formatResidents.ts` (new): pure `formatResidentList`, `formatJobTargets`, `formatAge`, `formatOccupancy`.
+  - `src/ui/residentListConstants.ts` (new): the meter thresholds low 34, high 67 and optimum 100, so 100, about 50 and 0 each look different.
+  - `src/ui/app.ts`: resident cards keyed by id in a `Map`, a wish-number stepper, a `role="alert"` message, `runCommand` (replace the state and refresh, or show the error), and add/remove of rows without rebuilding the others.
+  - `src/ui/styles.css`: card grid, need rows, stepper, and 44 px buttons and selects reusing the clock button style and focus outline; `.area-residents { grid-column: 1 / -1 }` inside the existing single media query.
+  - `tests/commands.test.ts`, `tests/formatResidents.test.ts` (new).
+- AC1: met by `tests/commands.test.ts` "job guard in setJobTarget/setPinnedJob". These tests check that invalid values are rejected and the state does not change, and that null and every job are still accepted. The existing `tests/assignment.test.ts` passes unchanged.
+- AC2: met by `tests/formatResidents.test.ts` "German job and need names"; the `Record` types make a missing job or need a type error.
+- AC3: met by "formatResidentList": the initial-state test checks id, name, age, job, pin, canPin, label and needs; also "formatAge" and "rounds a fractional need down".
+- AC4: met by "marks a resident pinned to miller without a mill as waiting" and "... when every place of the job is taken".
+- AC5: met by "formatJobTargets" (initial state, a finished well, wish above the places, a building under construction, pinned workers counted as working).
+- AC6: every case listed in the spec is in `tests/formatResidents.test.ts`, with seed 42. Also tested: a kept worker after the pin is released, and "1 Jahr" on a hand-made resident.
+- AC7: `src/ui/app.ts` `buildResidentRow`: a `<ul aria-label="Bewohnerliste">` with one `<li>` per resident, holding an `h3` name, a `dl` with Alter/Beruf plus the waiting note, the need rows and the select. The order is count, alert, list, Wunschzahlen.
+- AC8: `<meter min=0 max=100 low high optimum>` with a `<label for>` ("Brot"/"Wasser") and the floored number next to it. The number is `aria-hidden` because the meter already exposes its value.
+- AC9: a `<select>` with a visible `<label for>` "Zuteilung für <Name>". Options are "Automatisch" (value "") followed by `JOBS`. "" maps to null; any other string goes to the core as is, and the core rejects anything that is not a job. `disabled = !canPin`.
+- AC10: `buildJobTargetView`: an `h3` "Wunschzahlen", then one `<li>` per job with the name, "<w> von <p> Plätzen besetzt" (singular "Platz"), "Wunsch <n>", and the −/+ buttons with aria-labels such as "Bäcker: Wunschzahl verringern". "−" is disabled at 0, and "+" has no limit.
+- AC11/AC12: `runCommand` in `renderApp` reads the current `state` when it runs. On ok it replaces the state, clears the alert and calls refresh. On failure it keeps the state, writes `de.residentList.commandErrors[reason]` into the one `role="alert"` element and still calls refresh, so a refused select falls back to the value in the state.
+- AC13: `updateResidentListView` only sets textContent, `meter.value`, `disabled`, and `select.value` when that differs from the state. New ids are inserted after the previous row, and rows for gone ids are removed. Existing rows are never moved or rebuilt.
+- AC14: `grep` finds no `innerHTML` and no `aria-live` in `src/ui`; the only live region is the alert.
+- AC15/AC16: checked with headless Firefox screenshots at 360 px and 1280 px (`vite preview`). Nothing scrolls horizontally at 360 px, the cards stack, and at 1280 px Bewohner spans the full width with 4 cards per row. 200 % text was not checked in a browser; the layout relies on `min()` and flex-wrap, as in job 009.
+- AC17: `npm test` and `npm run build` pass. No new dependencies. `src/sim/` changes only for AC1 (`commands.ts` and `isJob` in `jobs.ts`).
+- Notes for review:
+  - Spanning the full width leaves Lager and Gebäude each in their own row on desktop with empty space next to them. I did not reorder them visually with `order` or `dense`, so the visual order still matches the DOM and tab order.
+  - When "−" reaches 0 it becomes `disabled`, and the browser drops focus from it. The spec asks for `disabled`.
+  - Assumptions taken from the spec as written: +/− buttons, the label "Automatisch", and per-job "working of places". The select label reads "Zuteilung für <Name>" rather than "Beruf für <Name>", so it does not clash with the "Beruf" line that shows the current job.
+- Test run: `npm test`, 304 tests in 16 files, all passing; `npm run build` passes.
