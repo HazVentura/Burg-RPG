@@ -23,7 +23,7 @@ function tickTimes(state: GameState, count: number): GameState {
 }
 
 function makeResident(id: number, needs: Needs): Resident {
-  return { id, name: `R${id}`, sex: id % 2 === 1 ? "female" : "male", bornAtHour: -5 * HOURS_PER_YEAR, partnerId: null, needs, workplaceId: null };
+  return { id, name: `R${id}`, sex: id % 2 === 1 ? "female" : "male", bornAtHour: -5 * HOURS_PER_YEAR, partnerId: null, needs, workplaceId: null, pinnedJob: null };
 }
 
 function makeStorage(bread: number, water: number): Storage {
@@ -40,6 +40,7 @@ function stateBeforeMidnight(residents: Resident[], storage: Storage): GameState
     nextResidentId: 100,
     buildings: [],
     nextBuildingId: 1,
+    jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
   };
 }
 
@@ -83,7 +84,7 @@ describe("starting needs", () => {
     // Values recorded from main before this job (seed 42).
     const state = createInitialState(SEED);
     expect(state.rngState).toBe(1007906594);
-    expect(state.residents.map(({ needs: _needs, workplaceId: _workplaceId, ...rest }) => rest)).toEqual([
+    expect(state.residents.map(({ needs: _needs, workplaceId: _workplaceId, pinnedJob: _pinnedJob, ...rest }) => rest)).toEqual([
       { id: 1, name: "Mechthild", sex: "female", bornAtHour: -7536, partnerId: 2 },
       { id: 2, name: "Rudolf", sex: "male", bornAtHour: -6264, partnerId: 1 },
       { id: 3, name: "Gertrud", sex: "female", bornAtHour: -8496, partnerId: 4 },
@@ -97,10 +98,11 @@ describe("starting needs", () => {
     expect(createInitialState(-1).rngState).toBe(1007906551);
   });
 
-  it("adds no top-level field to GameState beyond the buildings fields", () => {
+  it("adds no top-level field to GameState beyond the buildings and jobTargets fields", () => {
     expect(Object.keys(createInitialState(SEED)).sort()).toEqual([
       "buildings",
       "elapsedHours",
+      "jobTargets",
       "nextBuildingId",
       "nextResidentId",
       "residents",
