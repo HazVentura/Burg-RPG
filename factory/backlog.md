@@ -15,7 +15,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 - [x] Essen und Trinken: Bedürfnisse Brot und Wasser (0 bis 100), täglicher Verbrauch aus dem Lager, sinkende Werte bei Mangel
 - [x] Gebäude: Gebäudetypen mit Kosten in Holz und Stein, Bauzeit und Arbeitsplätzen; Bauauftrag, der automatisch über die Zeit fertig wird; Spielstart mit 2 Wohnhäusern
 - [x] Produktion der 5 Startberufe (Wasserträger, Bauer, Müller, Bäcker, Holzfäller): Arbeiter in ihrem Gebäude verbrauchen pro Stunde Eingangswaren aus dem Lager und erzeugen Ausgangswaren; Bauer produziert vorerst ganzjährig
-- [ ] Berufszuteilung: Wunschzahlen pro Beruf, automatische Verteilung freier Erwachsener auf freie Arbeitsplätze, einzelne Personen fest einem Beruf zuordnen
+- [x] Berufszuteilung: Wunschzahlen pro Beruf, automatische Verteilung freier Erwachsener auf freie Arbeitsplätze, einzelne Personen fest einem Beruf zuordnen
 
 ## Schritt 3: Verwaltungsoberfläche (erste spielbare Version)
 

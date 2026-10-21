@@ -1,0 +1,33 @@
+# Build: 008-job-assignment
+
+## Round 1
+- What changed:
+  - `src/sim/assignment.ts` (new): `assignJobs(state)`, the pure distribution with five passes in `state.residents` order (clear invalid, keep pinned, keep automatic within quota, place pinned, fill free adults in `JOBS` order). It also has the helper `getJob(buildings, resident)`. Unchanged residents keep the same reference, and the state is returned as-is if nobody moves.
+  - `src/sim/commands.ts`: `setJobTarget` / `SetJobTargetResult` (`invalidCount`) and `setPinnedJob` / `SetPinnedJobResult` (`unknownResident`, `notAdult`). Both apply `assignJobs` straight away.
+  - `src/sim/state.ts`: `GameState.jobTargets`, built from `JOBS` as a fresh zero record per game. `tick` runs `assignJobs` as its last step, on both the midnight and the non-midnight branch.
+  - `src/sim/residents.ts`: `Resident.pinnedJob` (settlers start with `null`) and `isAdult(resident, elapsedHours)`.
+  - `src/sim/residentConstants.ts`: `ADULT_AGE_YEARS = 5`. `START_AGE_MIN_YEARS = ADULT_AGE_YEARS`.
+  - Tests: new `tests/assignment.test.ts`. I also updated `tests/needs.test.ts`, `tests/state.test.ts`, `tests/residents.test.ts` and `tests/production.test.ts` for the new fields.
+- Design note: "keep" passes run before "place" passes. Pinned residents who already have a place keep it first, then automatic workers keep theirs within quota, then pinned residents without a place get a free one. Because quota = min(target, slots) - min(pinned, slots), a free place is always left for every pinned resident up to the job's slots. This is what makes the function idempotent.
+- Changes to existing tests (all still check what they checked before):
+  - `production.test.ts`: `makeState` now derives `jobTargets` from the hand-made staffing (`targetsFor`), so `assignJobs` keeps those workers in place. `pinnedStart` and "first produces on the tick after construction finishes" set `waterCarrier: 1`. The second one no longer hand-sets `workplaceId`; the well is staffed by assignment instead.
+  - "ignores null, unknown ids, houses and buildings under construction" now expects those invalid workplaceIds to be cleared after the tick (AC4). Storage is still checked as unchanged.
+  - "ignores age, sex, partner and needs" checks the newborn through `produceHour` directly. Through `tick` it uses a hungry adult, because assignment now takes children out of work.
+  - Key lists and exact-shape `toEqual` checks now include `jobTargets` / `pinnedJob`.
+- AC1: `assignment.test.ts` "starts every wish number at 0, one key per job", "gives every game a fresh jobTargets object"; `state.test.ts` exact shape after 960 ticks
+- AC2: "starts every settler unpinned and without a workplace, for several seeds", "leaves a new game without targets or pins idle after many ticks"; existing `needs.test.ts` "keeps rngState, names, ages and partners exactly as before needs existed", `production.test.ts` "leaves a new game exactly as daily consumption alone would, over 100 days", `state.test.ts` "does not mutate any state over 960 ticks" (exact deep-equal)
+- AC3: "is 5 game years, the youngest starting age", "starts exactly at the fifth birthday", "never gives a child a workplace...", "staffs a resident from the tick of their fifth birthday", "rejects pinning a child, but allows releasing one"
+- AC4: describe "clearing invalid workplaces (AC4)" (unknown id, house, construction site, child, pinned in a building of another job, removed building)
+- AC5: describe "pinned residents (AC5)" (keeps exact building, list order across two wells, beyond slots waits idle, overfull building, priority over automatic workers, pin to a job without a building, pinned child not counted)
+- AC6, AC7: describe "automatic workers (AC6, AC7)" (keeps exact building, releases later ones beyond quota, JOBS order, two buildings filled in list order, target above slots)
+- AC8: describe "consequences (AC8)". This is a sweep over 300 seeded random hand-made states (`createRandom`). It checks the building cap, that workplaces are valid, the exact count formula when there are enough free adults (otherwise `<=`), idempotence with the same resident references, that only `workplaceId` changes, and that the input is not mutated.
+- AC9: "worked example (AC9) > follows the agreed sequence"
+- AC10: describe "setJobTarget (AC10, AC12)"
+- AC11: describe "setPinnedJob (AC11, AC12)" (pin, release keeping the workplace, release without a target, null on an unpinned resident, unknownResident, notAdult)
+- AC12: the failure and no-mutation tests in both command describes; the result types are discriminated unions in `src/sim/commands.ts`
+- AC13: "staffs a new well at the end of its last build tick, producing from the next", "staffs a building that finishes on a midnight tick"
+- AC14: "stays pure and deterministic with targets and pins"; existing purity tests in `state.test.ts` and `production.test.ts`
+- AC15: "survives a JSON round trip with targets, pins and workplaces"; existing round-trip tests in `state.test.ts`
+- AC16: covered by the tests above. Existing tests were updated, none deleted. No new dependencies.
+- AC17: `git diff main --stat` shows no changes in `src/ui/`, `src/main.ts` or `src/text/de.ts`.
+- Test run: `npm test`, 272 tests, all passing. `npm run build` passes.
