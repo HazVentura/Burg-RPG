@@ -143,7 +143,25 @@
       "builder": "builder-008-job-assignment",
       "decision": "APPROVE",
       "updated": "2026-10-21T05:21:31Z"
+    },
+    {
+      "id": "009-admin-ui-layout",
+      "title": "Grundlayout der Verwaltungsoberfläche",
+      "branch": "factory/009-admin-ui-layout",
+      "stage": "needs-human",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-009-admin-ui-layout",
+      "decision": "ESCALATE",
+      "updated": "2026-10-21T05:28:23Z"
     }
   ],
-  "updated": "2026-10-21T05:21:31Z"
+  "updated": "2026-10-21T05:28:23Z"
 }
