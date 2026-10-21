@@ -1,4 +1,14 @@
-/* Clock section and storage panel. Sized to fit a 360 px viewport; buttons meet the 44 px touch target. */
+/*
+ * Page frame: a header with title and clock, then the area panels.
+ * Mobile first: one column that fits a 360 px viewport, also at 200 % text size.
+ * Buttons meet the 44 px touch target.
+ */
+
+:root {
+  /* Width limit of header and areas; wide enough for several columns on a desktop. */
+  --page-max-width: 72rem;
+  --page-padding: 1rem;
+}
 
 *,
 *::before,
@@ -12,20 +22,71 @@ body {
   line-height: 1.4;
   color: #1f1a14;
   background: #f6f1e7;
+  /* Long words break instead of pushing the page wider than the viewport. */
+  overflow-wrap: break-word;
 }
 
-main {
-  max-width: 40rem;
+/* Header and areas share one width limit, so the header spans the areas below it. */
+.page-header,
+.areas {
+  max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--page-padding);
 }
 
-.clock {
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  /* The areas add their own top padding; keep the header compact on a phone. */
+  padding-bottom: 0;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* The clock takes the rest of the header row, or its own line when narrow. */
+.page-header .clock {
+  flex: 1 1 auto;
+}
+
+/* One frame for the clock and every area. */
+.panel {
+  /* Grid and flex children may shrink below their content, so nothing overflows. */
+  min-width: 0;
   border: 1px solid #8a7a62;
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   background: #fffaf0;
 }
+
+/* Areas: one column on a phone, in DOM order Lager, Bewohner, Gebäude. */
+.areas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+/*
+ * The only breakpoint (48rem). As many columns of at least 18rem as fit; the
+ * columns share the space, so a wider Bewohner area later needs no change here.
+ */
+@media (min-width: 48rem) {
+  .areas {
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+  }
+}
+
+.area h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* Clock */
 
 .clock-values {
   display: flex;
@@ -56,6 +117,8 @@ main {
 
 .clock-speeds {
   display: flex;
+  /* Wraps only at large text sizes, where three buttons no longer fit in a row. */
+  flex-wrap: wrap;
   gap: 0.25rem;
 }
 
@@ -91,30 +154,17 @@ main {
   text-underline-offset: 0.2em;
 }
 
-/* Storage panel. Same frame as the clock; a two-column list of name and amount. */
+/* Value list of the areas: label and value per row, in as many columns as fit. */
 
-.storage {
-  margin-top: 1rem;
-  border: 1px solid #8a7a62;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #fffaf0;
-}
-
-.storage h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-}
-
-.storage-values {
+.value-list {
   display: grid;
-  /* Two columns on narrow screens, more where there is room; never wider than the viewport. */
-  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  /* min() keeps one column within the panel even at 200 % text size on a phone. */
+  grid-template-columns: repeat(auto-fill, minmax(min(8rem, 100%), 1fr));
   gap: 0.25rem 1.5rem;
   margin: 0;
 }
 
-.storage-values div {
+.value-list div {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
@@ -122,14 +172,14 @@ main {
   border-bottom: 1px solid #e4d9c4;
 }
 
-.storage-values dt {
+.value-list dt {
   color: #5a4c38;
 }
 
-.storage-values dd {
+.value-list dd {
   margin: 0;
   font-weight: 600;
-  /* Equal-width digits so amounts do not jitter as stock changes. */
+  /* Equal-width digits so amounts do not jitter as they change. */
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
