@@ -20,13 +20,16 @@ export interface Needs {
   water: number;
 }
 
-/** Goods consumed daily; each one is also the key of its need. */
-const CONSUMED_GOODS = ["bread", "water"] as const satisfies readonly (keyof Needs & keyof Storage)[];
+/** Goods consumed daily, in GOODS order; each one is also the key of its need. */
+export const CONSUMED_GOODS = ["bread", "water"] as const satisfies readonly (keyof Needs & keyof Storage)[];
 
-const RATION_PER_DAY: Readonly<Record<(typeof CONSUMED_GOODS)[number], number>> = {
+export type ConsumedGood = (typeof CONSUMED_GOODS)[number];
+
+/** Amount of each consumed good one resident takes per day. */
+export const RATION_PER_DAY: Readonly<Record<ConsumedGood, number>> = Object.freeze({
   bread: BREAD_PER_RESIDENT_PER_DAY,
   water: WATER_PER_RESIDENT_PER_DAY,
-};
+});
 
 /** Needs of a well-supplied resident, as a fresh object. */
 export function createFullNeeds(): Needs {
