@@ -63,8 +63,7 @@ function makeState(
   };
 }
 
-/** The seed-42 game with a finished well (id 3, 2 places) and field (id 4, 4 places). */
-/** A new game with a finished well and field, but all wish numbers at 0, so each test sets only what it checks. */
+/** A new game with a finished well (id 3, 2 places) and field (id 4, 4 places), but all wish numbers at 0, so each test sets only what it checks. */
 function wellAndField(): GameState {
   const initial = createInitialState(SEED);
   return {

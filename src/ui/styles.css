@@ -367,14 +367,23 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * "–", value and "+" sit in one row wherever they fit. At 200 % zoom on a phone the
+ * panel is narrower than the row, so the parts wrap onto further lines instead of
+ * pushing "+" out of the panel; wrapping keeps the order "–", value, "+".
+ */
 .job-target-stepper {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .job-target-value {
-  min-width: 4.5rem;
+  /* min() lets the value shrink to the panel width once it has a line of its own. */
+  min-width: min(4.5rem, 100%);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
