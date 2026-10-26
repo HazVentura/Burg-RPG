@@ -216,7 +216,26 @@
       "builder": "builder-012-chronicle",
       "decision": "APPROVE",
       "updated": "2026-10-26T20:54:03Z"
+    },
+    {
+      "id": "013-playable-start",
+      "title": "Spielbarer Start",
+      "branch": "factory/013-playable-start",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "skipped",
+        "ui": "skipped",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-013-playable-start",
+      "decision": "APPROVE",
+      "updated": "2026-10-26T22:24:18Z"
     }
   ],
-  "updated": "2026-10-26T20:54:03Z"
+  "updated": "2026-10-26T22:24:18Z"
 }
