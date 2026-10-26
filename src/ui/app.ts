@@ -2,7 +2,7 @@
 // Layout: a header with title and clock, then a main with one section per area.
 // The page is built once; afterwards only textContent, aria-pressed, meter and
 // progress values, hidden, disabled and select values change, and list items
-// are added for new ids, so controls keep keyboard focus while the clock runs.
+// are added for new ids or keys, so controls keep keyboard focus while the clock runs.
 
 import { getCalendar } from "../sim/calendar";
 import type { BuildingType } from "../sim/buildings";
@@ -25,6 +25,7 @@ import {
   type BuildOptionRow,
   type BuildingRow,
 } from "./formatBuildings";
+import { formatChronicle, type ChronicleRow } from "./formatChronicle";
 import { formatClock } from "./formatClock";
 import { formatStorage } from "./formatStorage";
 import { formatJobTargets, formatResidentList, type JobTargetRow, type NeedKey, type ResidentRow } from "./formatResidents";
@@ -102,6 +103,14 @@ interface BuildOptionsView {
   missing: Map<BuildingType, HTMLElement>;
 }
 
+interface ChronicleView {
+  /** Shown instead of the list while the chronicle is empty. */
+  empty: HTMLElement;
+  list: HTMLOListElement;
+  /** Keyed by row key; an item is built once and only removed when the cap drops its entry. */
+  items: Map<string, HTMLLIElement>;
+}
+
 /** Select value for "Automatisch"; every other option value is a Job. */
 const NO_PIN = "";
 
@@ -116,7 +125,7 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
   const view = buildClockView();
   header.append(title, view.section);
 
-  // Areas in DOM order Lager, Bewohner, Gebäude; on a phone they stack in this order.
+  // Areas in DOM order Lager, Bewohner, Gebäude, Chronik; on a phone they stack in this order.
   const main = document.createElement("main");
   main.className = "areas";
   const storageView = buildStorageView();
@@ -156,7 +165,8 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     runOrder(type);
   });
   buildingView.section.append(orderError, buildingListView.list, buildOptionsView.section);
-  main.append(storageView.section, residentView.section, buildingView.section);
+  const chronicleView = buildChronicleView();
+  main.append(storageView.section, residentView.section, buildingView.section, chronicleView.section);
   root.replaceChildren(header, main);
 
   const refresh = (): void => {
@@ -168,6 +178,7 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     updateSummaryView(buildingView, formatBuildingSummary(state));
     updateBuildingListView(buildingListView, formatBuildingList(state));
     updateBuildOptionsView(buildOptionsView, formatBuildOptions(state));
+    updateChronicleView(chronicleView, formatChronicle(state));
   };
 
   // AC11/AC12: take the new state at once, even while paused; on failure keep
@@ -271,19 +282,25 @@ function buildClockView(): ClockView & { section: HTMLElement } {
   return { section, date, season, time, pauseButton, speedButtons };
 }
 
-/** An area panel: a section labelled by its own h2, with an empty value list below. */
-function buildArea(headingId: string, headingText: string): { section: HTMLElement; list: HTMLDListElement } {
+/** An area panel: a section labelled by its own h2. */
+function buildPanel(headingId: string, headingText: string): HTMLElement {
   const section = document.createElement("section");
   section.className = "panel area";
   const heading = document.createElement("h2");
   heading.id = headingId;
   heading.textContent = headingText;
   section.setAttribute("aria-labelledby", heading.id);
+  section.append(heading);
+  return section;
+}
 
+/** An area panel with an empty value list below its heading. */
+function buildArea(headingId: string, headingText: string): { section: HTMLElement; list: HTMLDListElement } {
+  const section = buildPanel(headingId, headingText);
   // Deliberately no aria-live, like the clock: values change every hour.
   const list = document.createElement("dl");
   list.className = "value-list";
-  section.append(heading, list);
+  section.append(list);
   return { section, list };
 }
 
@@ -673,4 +690,74 @@ function updateJobTargetView(view: JobTargetView, rows: readonly JobTargetRow[])
     rowView.occupancy.textContent = row.occupancyText;
     rowView.decrease.disabled = !row.canDecrease;
   }
+}
+
+/**
+ * The Chronik area: an ordered list, newest first. Deliberately not a live
+ * region (no aria-live, no role="log"): at 4x several entries can come per
+ * second and would flood a screen reader.
+ */
+function buildChronicleView(): ChronicleView & { section: HTMLElement } {
+  const section = buildPanel("chronicle-heading", de.chronicle.heading);
+  section.classList.add("area-chronicle");
+
+  const empty = document.createElement("p");
+  empty.className = "chronicle-empty";
+  empty.textContent = de.chronicle.empty;
+
+  const list = document.createElement("ol");
+  list.className = "chronicle-list";
+  list.setAttribute("aria-label", de.chronicle.listLabel);
+  // The list scrolls inside the panel, so keyboard users must be able to focus it to scroll.
+  list.tabIndex = 0;
+
+  section.append(empty, list);
+  return { section, empty, list, items: new Map() };
+}
+
+function buildChronicleItem(row: ChronicleRow): HTMLLIElement {
+  const item = document.createElement("li");
+  item.className = "chronicle-entry";
+  const time = document.createElement("span");
+  time.className = "chronicle-time";
+  time.textContent = row.timeText;
+  const text = document.createElement("span");
+  text.className = "chronicle-text";
+  text.textContent = row.text;
+  item.append(time, text);
+  return item;
+}
+
+/**
+ * Adds items for new keys in row order (new entries come at the top) and
+ * removes items whose entries the cap dropped. An entry never changes, so
+ * existing items are left as they are.
+ */
+function updateChronicleView(view: ChronicleView, rows: readonly ChronicleRow[]): void {
+  const present = new Set<string>();
+  let previous: HTMLLIElement | null = null;
+  for (const row of rows) {
+    present.add(row.key);
+    let item = view.items.get(row.key);
+    if (item === undefined) {
+      item = buildChronicleItem(row);
+      view.items.set(row.key, item);
+      if (previous === null) {
+        view.list.prepend(item);
+      } else {
+        previous.after(item);
+      }
+    }
+    previous = item;
+  }
+  for (const [key, item] of view.items) {
+    if (!present.has(key)) {
+      item.remove();
+      view.items.delete(key);
+    }
+  }
+  // While empty, the list is hidden so it is no empty tab stop.
+  const isEmpty = rows.length === 0;
+  view.empty.hidden = !isEmpty;
+  view.list.hidden = isEmpty;
 }

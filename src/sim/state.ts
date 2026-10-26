@@ -5,6 +5,7 @@
 import { START_HOUSES } from "./buildingConstants";
 import { assignJobs } from "./assignment";
 import { advanceConstruction, type Building } from "./buildings";
+import { detectEvents, prependEntries, type ChronicleEntry } from "./chronicle";
 import type { Storage } from "./goods";
 import { JOBS, type Job } from "./jobs";
 import { consumeDailyFood } from "./needs";
@@ -31,6 +32,13 @@ export interface GameState {
   nextBuildingId: number;
   /** Wish number per job (Wunschzahl): how many residents the player wants in it, pinned ones included. */
   jobTargets: Record<Job, number>;
+  /** Notable events, newest first, at most CHRONICLE_MAX_ENTRIES (see chronicle.ts). */
+  chronicle: ChronicleEntry[];
+  /**
+   * Number of chronicle entries ever recorded; only ever grows. The UI derives a
+   * stable key per entry from it, which survives the cap dropping old entries.
+   */
+  nextChronicleId: number;
 }
 
 /** Every job's wish number at 0, built from JOBS so no job is forgotten; a fresh object per call. */
@@ -57,6 +65,8 @@ export function createInitialState(seed: number): GameState {
     buildings: createStartHouses(),
     nextBuildingId: START_HOUSES + 1,
     jobTargets: createJobTargets(),
+    chronicle: [],
+    nextChronicleId: 0,
   };
 }
 
@@ -72,8 +82,21 @@ export function createInitialState(seed: number): GameState {
  *    (consumeDailyFood), including what was made in this last hour.
  * 4. Job assignment (assignJobs) at the new hour, so a building finished in
  *    this tick is staffed now and produces from the next tick.
+ * 5. Chronicle: the start and the end of the tick are compared, and buildings
+ *    that finished and goods that ran out are recorded at the new hour.
  */
 export function tick(state: GameState): GameState {
+  const next = advanceHour(state);
+  const entries = detectEvents(state, next, next.elapsedHours);
+  return {
+    ...next,
+    chronicle: prependEntries(state.chronicle, entries),
+    nextChronicleId: state.nextChronicleId + entries.length,
+  };
+}
+
+/** Steps 1 to 4 of tick: everything except the chronicle. */
+function advanceHour(state: GameState): GameState {
   const advanced: GameState = {
     ...state,
     elapsedHours: state.elapsedHours + 1,

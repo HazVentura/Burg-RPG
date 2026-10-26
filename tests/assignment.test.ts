@@ -56,6 +56,9 @@ function makeState(
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: { ...zeroTargets(), ...targets },
+
+    chronicle: [],
+    nextChronicleId: 0,
   };
 }
 

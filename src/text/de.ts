@@ -2,6 +2,7 @@
 
 import type { Season } from "../sim/calendar";
 import type { BuildingType } from "../sim/buildings";
+import type { ChronicleKind } from "../sim/chronicle";
 import type { OrderResult, SetJobTargetResult, SetPinnedJobResult } from "../sim/commands";
 import type { Good } from "../sim/goods";
 import type { Job } from "../sim/jobs";
@@ -74,6 +75,13 @@ export type OrderFailure = Extract<OrderResult, { ok: false }>["reason"];
 const orderErrors: Record<OrderFailure, string> = {
   notEnoughGoods: "Dafür reichen Holz und Stein im Lager nicht.",
   unknownBuilding: "Dieses Gebäude gibt es nicht.",
+};
+
+// Message text per chronicle entry kind; keyed so a new kind without a text is a type error.
+// The display name ("Mühle 1") or good name ("Mehl") comes first, the suffix follows.
+const chronicleMessages: Record<ChronicleKind, string> = {
+  buildingFinished: "fertig gebaut",
+  goodRanOut: "ist ausgegangen",
 };
 
 export const de = {
@@ -161,4 +169,10 @@ export const de = {
     orderErrors,
   },
   buildingTypes,
+  chronicle: {
+    heading: "Chronik",
+    listLabel: "Ereignisse, neueste zuerst",
+    empty: "Noch keine Ereignisse.",
+    messages: chronicleMessages,
+  },
 } as const;

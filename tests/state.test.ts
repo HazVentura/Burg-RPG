@@ -114,6 +114,12 @@ describe("tick", () => {
       ],
       nextBuildingId: 3,
       jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
+      // 8 residents drink 40 water in 5 days (hour 120) and eat 60 bread by day 8 (hour 192); newest first.
+      chronicle: [
+        { kind: "goodRanOut", hour: 192, good: "bread" },
+        { kind: "goodRanOut", hour: 120, good: "water" },
+      ],
+      nextChronicleId: 2,
     });
   });
 
@@ -146,15 +152,17 @@ describe("GameState serialization", () => {
     expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
     expect(Object.keys(state).sort()).toEqual([
       "buildings",
+      "chronicle",
       "elapsedHours",
       "jobTargets",
       "nextBuildingId",
+      "nextChronicleId",
       "nextResidentId",
       "residents",
       "rngState",
       "storage",
     ]);
-    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId, state.nextBuildingId]) {
+    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId, state.nextBuildingId, state.nextChronicleId]) {
       expect(typeof value).toBe("number");
       expect(Number.isFinite(value)).toBe(true);
     }
