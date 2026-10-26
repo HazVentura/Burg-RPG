@@ -563,3 +563,77 @@ body {
   color: #5a4c38;
   font-variant-numeric: tabular-nums;
 }
+
+/* Produktionskette area */
+
+/* "Kein Engpass" reads as a quiet note; a named bottleneck gets the alert look of .command-error. */
+.chain-bottleneck {
+  margin: 0 0 0.75rem;
+  color: #5a4c38;
+  font-style: italic;
+}
+
+.chain-bottleneck-active {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #8a7a62;
+  border-radius: 0.375rem;
+  color: #1f1a14;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.chain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * One step per row: inputs → job → outputs. The parts wrap onto further lines
+ * when the panel is narrower than the step, as the Bäcker step with three inputs
+ * is on a phone at 200 % zoom; min-width: 0 lets long words break instead of overflowing.
+ */
+.chain-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.5rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid #e4d9c4;
+}
+
+.chain-step > * {
+  min-width: 0;
+}
+
+.chain-job-name {
+  font-weight: 600;
+}
+
+.chain-job-detail,
+.chain-arrow {
+  color: #5a4c38;
+}
+
+.chain-job-detail,
+.chain-good-amount {
+  /* Equal-width digits so counts and amounts do not jitter as they change. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* The visible "fehlt" word, in the look of .build-option-missing; color is never the only mark. */
+.chain-good-missing {
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* The start of the problem: bold with a thicker frame, like .command-error. */
+.chain-good-is-bottleneck {
+  padding: 0 0.25rem;
+  border: 2px solid #8a7a62;
+  border-radius: 0.375rem;
+  font-weight: 700;
+  /* A frame broken across lines keeps its sides on every line. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
