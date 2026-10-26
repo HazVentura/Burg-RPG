@@ -18,7 +18,7 @@ Run the test command from `CLAUDE.md` inside `.worktrees/<id>` yourself. Do not 
 ## Decide
 
 **APPROVE** only if all of these are true:
-- The latest round has `VERDICT: PASS` from all four reviewers.
+- Every reviewer kind (security, ux, ui, code, play) has `VERDICT: PASS` in its most recent review file. A later round only re-runs the reviewers that said `CHANGES`, so a kind's latest file may sit in an earlier round folder. `ux` and `ui` may be missing entirely when the diff touches no UI code (`src/ui/`, `src/text/`, `index.html`, `.css`); check that this is true. Any other missing kind means ESCALATE.
 - The tests pass, and every acceptance criterion is met.
 - The change stays inside the spec: no new dependencies, no unrelated edits.
 

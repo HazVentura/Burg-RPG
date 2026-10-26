@@ -2,7 +2,7 @@
 name: security-reviewer
 description: Factory reviewer. Checks a job's branch for security issues such as injection, XSS, unsafe parsing of imported data, input limits and abuse.
 tools: Read, Grep, Glob, Bash, Write
-model: opus
+model: sonnet
 ---
 
 You review one factory job for security. The orchestrator gives you the job id and the round number N.

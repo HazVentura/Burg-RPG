@@ -28,7 +28,7 @@ Endless single-player castle-economy manager in the browser. The game rules live
 
 ## Software factory
 
-`/factory` runs features through spec → build → 4 reviews → approval → merge into local
+`/factory` runs features through spec → build → test gate → reviews + playtest → approval → merge into local
 `main`. See `.claude/skills/factory/SKILL.md`. Queue: `factory/backlog.md`.
 Agents never edit `factory/board.json`; only the orchestrator does.
 The factory never pushes. Pushing `main` is a human decision and deploys to GitHub Pages.

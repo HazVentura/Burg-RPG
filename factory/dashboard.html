@@ -33,7 +33,7 @@
   .legend { margin-left: auto; display: flex; gap: 12px; color: var(--muted); font-size: 12px; }
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
-  .board { display: grid; grid-template-columns: repeat(6, minmax(190px, 1fr)); gap: 12px; padding: 12px 24px 32px; overflow-x: auto; }
+  .board { display: grid; grid-template-columns: repeat(7, minmax(170px, 1fr)); gap: 12px; padding: 12px 24px 32px; overflow-x: auto; }
   .col { min-width: 0; }
   .col h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; }
   .col h2 .arrow { opacity: 0.5; }
@@ -55,6 +55,7 @@
   .chip { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; border: 1px dashed var(--pending); color: var(--pending); }
   .chip.PASS { border: 1px solid transparent; background: var(--pass-bg); color: var(--pass); }
   .chip.CHANGES { border: 1px solid transparent; background: var(--changes-bg); color: var(--changes); }
+  .chip.skipped { border: 1px solid transparent; opacity: 0.35; text-decoration: line-through; }
   .chip.pending { animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: 0.45; } }
   .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 18px 4px; }
@@ -101,6 +102,7 @@
     <span><span class="chip">U</span> ux</span>
     <span><span class="chip">I</span> ui</span>
     <span><span class="chip">C</span> code</span>
+    <span><span class="chip">P</span> playtest</span>
   </span>
 </header>
 <p class="hint" id="hint" hidden>No jobs yet. Run <code>/factory next</code> or <code>/factory &lt;feature&gt;</code> in Claude Code.</p>
@@ -116,10 +118,10 @@
 
 <script>
 const STAGES = [
-  ["spec", "Spec"], ["build", "Build"], ["review", "Review"],
+  ["spec", "Spec"], ["build", "Build"], ["gate", "Gate"], ["review", "Review"],
   ["approval", "Approval"], ["needs-human", "Needs human"], ["merged", "Merged"],
 ];
-const REVIEWERS = [["security", "S"], ["ux", "U"], ["ui", "I"], ["code", "C"]];
+const REVIEWERS = [["security", "S"], ["ux", "U"], ["ui", "I"], ["code", "C"], ["play", "P"]];
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -200,7 +202,7 @@ async function openFiles(id, keepSelection = false) {
   const groups = [["Job", ["spec.md", "build.md"]]];
   const total = Math.max(job.round || 1, (job.history || []).length);
   for (let n = 1; n <= total; n++) {
-    groups.push([`Round ${n}`, ["security", "ux", "ui", "code"].map((k) => `round-${n}/review-${k}.md`).concat(`round-${n}/feedback-human.md`)]);
+    groups.push([`Round ${n}`, ["security", "ux", "ui", "code", "play"].map((k) => `round-${n}/review-${k}.md`).concat(`round-${n}/feedback-human.md`)]);
   }
   groups.push(["Decision", ["decision.md"]]);
 
