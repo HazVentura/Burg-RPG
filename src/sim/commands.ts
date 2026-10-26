@@ -4,18 +4,24 @@
 
 import { assignJobs } from "./assignment";
 import { getBuildingDefinition } from "./buildingConstants";
-import type { BuildingType } from "./buildings";
+import { isBuildingType, type BuildingType } from "./buildings";
 import { isJob, type Job } from "./jobs";
 import { isAdult } from "./residents";
 import type { GameState } from "./state";
 
-export type OrderResult = { ok: true; state: GameState } | { ok: false; reason: "notEnoughGoods" };
+export type OrderResult =
+  | { ok: true; state: GameState }
+  | { ok: false; reason: "notEnoughGoods" | "unknownBuilding" };
 
 /**
  * Orders a new building. The full cost is paid at once from storage; tick
  * finishes the building after its build time. Never mutates state.
  */
 export function orderBuilding(state: GameState, type: BuildingType): OrderResult {
+  // The type says BuildingType, but the UI hands over values from the DOM; check at runtime.
+  if (!isBuildingType(type)) {
+    return { ok: false, reason: "unknownBuilding" };
+  }
   const { cost, buildHours } = getBuildingDefinition(type);
   const { storage } = state;
   if (storage.wood < cost.wood || storage.stone < cost.stone) {
