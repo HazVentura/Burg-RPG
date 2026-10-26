@@ -179,7 +179,25 @@
       "builder": "builder-010-resident-list",
       "decision": "APPROVE",
       "updated": "2026-10-21T06:13:21Z"
+    },
+    {
+      "id": "011-buildings-panel",
+      "title": "Gebäude-Panel",
+      "branch": "factory/011-buildings-panel",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "history": [],
+      "builder": "builder-011-buildings-panel",
+      "decision": "APPROVE",
+      "updated": "2026-10-26T20:34:42Z"
     }
   ],
-  "updated": "2026-10-21T06:13:21Z"
+  "updated": "2026-10-26T20:34:42Z"
 }
