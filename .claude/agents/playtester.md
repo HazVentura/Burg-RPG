@@ -21,20 +21,18 @@ Look for things a player would call a bug: residents starving although the stock
 
 ## 2. Look
 
-The installed Firefox is a snap, so it can only write inside `~/snap/firefox/common/`. Use the folder `~/snap/firefox/common/factory-playtest/<id>/`.
+Build and serve the worktree, then shoot it with `factory/tools/screenshot.py`. The script runs headless Firefox, trims the page and cuts it into readable tiles named `<name>-0.png`, `<name>-1.png`, ...
 
 ```bash
-P=~/snap/firefox/common/factory-playtest/<id>
-mkdir -p $P/profile
 cd .worktrees/<id> && npm run build
 npx vite preview --port 5199 --strictPort &   # stop it when done
-firefox --headless --no-remote --profile $P/profile --window-size=360,4000 --screenshot $P/phone.png http://localhost:5199/
-firefox --headless --no-remote --profile $P/profile --window-size=1280,2000 --screenshot $P/desktop.png http://localhost:5199/
+OUT=factory/jobs/<id>/round-<N>/play           # relative to the repo root
+python3 factory/tools/screenshot.py http://localhost:5199/ 360  $OUT phone
+python3 factory/tools/screenshot.py http://localhost:5199/ 180  $OUT zoom200   # 200 % zoom on a 360 px phone
+python3 factory/tools/screenshot.py http://localhost:5199/ 1280 $OUT desktop
 ```
 
-For the 200 % text check, add `user_pref("layout.css.devPixelsPerPx", "2.0");` to `$P/profile/user.js` and take one more phone screenshot.
-
-Open each PNG with Read and look at it: horizontal overflow, cut-off or overlapping text, missing sections, wrong German text, touch targets clearly smaller than 44 px. Copy the screenshots to `factory/jobs/<id>/round-<N>/play/`. Stop the preview server and delete `$P` when you are done.
+Open every tile with Read, down to the last one, so you see the whole page: horizontal overflow, cut-off or overlapping text, missing sections, wrong German text, touch targets clearly smaller than 44 px. Stop the preview server when you are done.
 
 Screenshots show the page at start-up only; you cannot click. Say in your review what you could not check that way.
 
