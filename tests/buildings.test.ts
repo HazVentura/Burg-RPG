@@ -377,7 +377,11 @@ describe("construction over time", () => {
   it("keeps daily consumption the same and finishes a building on a midnight tick", () => {
     // A well ordered at hour 0 is finished on tick 24, the first midnight.
     expect(BUILDING_DEFINITIONS.well.buildHours).toBe(HOURS_PER_DAY);
-    const plain = createInitialState(SEED);
+    // Wish numbers at 0, so the finished well stays empty and only consumption shows.
+    const plain: GameState = {
+      ...createInitialState(SEED),
+      jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
+    };
     const ordered = mustOrder(plain, "well");
     const plainLater = tickTimes(plain, HOURS_PER_DAY);
     const orderedLater = tickTimes(ordered, HOURS_PER_DAY);

@@ -2,6 +2,7 @@ import { getJob, assignJobs } from "../src/sim/assignment";
 import { BUILDING_DEFINITIONS } from "../src/sim/buildingConstants";
 import { BUILDING_TYPES, type Building, type BuildingType } from "../src/sim/buildings";
 import { orderBuilding, setJobTarget, setPinnedJob } from "../src/sim/commands";
+import { START_JOB_TARGETS } from "../src/sim/jobConstants";
 import { JOBS, JOB_BUILDING, jobForBuilding, type Job } from "../src/sim/jobs";
 import { createRandom } from "../src/sim/random";
 import { ADULT_AGE_YEARS, START_AGE_MIN_YEARS } from "../src/sim/residentConstants";
@@ -63,9 +64,15 @@ function makeState(
 }
 
 /** The seed-42 game with a finished well (id 3, 2 places) and field (id 4, 4 places). */
+/** A new game with a finished well and field, but all wish numbers at 0, so each test sets only what it checks. */
 function wellAndField(): GameState {
   const initial = createInitialState(SEED);
-  return { ...initial, buildings: [...initial.buildings, finished(3, "well"), finished(4, "field")], nextBuildingId: 5 };
+  return {
+    ...initial,
+    buildings: [...initial.buildings, finished(3, "well"), finished(4, "field")],
+    nextBuildingId: 5,
+    jobTargets: zeroTargets(),
+  };
 }
 
 function target(state: GameState, job: Job, count: number): GameState {
@@ -87,16 +94,17 @@ function workersOf(state: GameState, job: Job): number {
 }
 
 describe("state fields (AC1, AC2)", () => {
-  it("starts every wish number at 0, one key per job", () => {
+  it("starts every wish number at START_JOB_TARGETS, one key per job", () => {
     const { jobTargets } = createInitialState(SEED);
     expect(Object.keys(jobTargets).sort()).toEqual([...JOBS].sort());
-    expect(jobTargets).toEqual(zeroTargets());
+    expect(jobTargets).toEqual(START_JOB_TARGETS);
   });
 
   it("gives every game a fresh jobTargets object", () => {
     const a = createInitialState(SEED);
     const b = createInitialState(SEED);
     expect(a.jobTargets).not.toBe(b.jobTargets);
+    expect(a.jobTargets).not.toBe(START_JOB_TARGETS);
   });
 
   it("starts every settler unpinned and without a workplace, for several seeds", () => {
@@ -108,9 +116,9 @@ describe("state fields (AC1, AC2)", () => {
     }
   });
 
-  it("leaves a new game without targets or pins idle after many ticks", () => {
+  it("leaves a new game without buildings or pins idle after many ticks, despite the start targets", () => {
     const state = tickTimes(createInitialState(SEED), 2 * HOURS_PER_DAY + 5);
-    expect(state.jobTargets).toEqual(zeroTargets());
+    expect(state.jobTargets).toEqual(START_JOB_TARGETS);
     expect(state.residents.every((r) => r.workplaceId === null && r.pinnedJob === null)).toBe(true);
     expect(state.rngState).toBe(createInitialState(SEED).rngState);
   });
