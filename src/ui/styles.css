@@ -390,3 +390,125 @@ body {
 .job-target-button {
   font-weight: 700;
 }
+
+/* Gebäude area */
+
+.building-list,
+.build-option-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* min() keeps one item within the panel even at 200 % text size on a phone. */
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+}
+
+.building-list {
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.building {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e4d9c4;
+  border-radius: 0.375rem;
+}
+
+/* Bar and its text in one row; wraps at large text sizes. */
+.building-construction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+/* The hidden attribute must win over display: flex above. */
+.building-construction[hidden] {
+  display: none;
+}
+
+.building-construction progress {
+  flex: 1 1 6rem;
+  min-width: 0;
+  height: 1rem;
+}
+
+.building-progress-text,
+.building-status {
+  color: #5a4c38;
+  font-variant-numeric: tabular-nums;
+}
+
+.building-percent {
+  font-weight: 600;
+  color: #1f1a14;
+}
+
+.building-status {
+  margin: 0;
+}
+
+.build-options {
+  margin-top: 1rem;
+}
+
+.build-option-list {
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.build-option {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e4d9c4;
+}
+
+.build-option-name {
+  font-weight: 600;
+}
+
+.build-option-facts {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+}
+
+.build-option-facts div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+
+.build-option-facts dt {
+  color: #5a4c38;
+}
+
+.build-option-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Says what is missing instead of disabling the button; takes no space while empty. */
+.build-option-missing {
+  margin: 0;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.build-option-missing:empty {
+  display: none;
+}
+
+/* Long names such as "Holzfällerhütte bauen" wrap inside the button instead of overflowing. */
+.build-option-button {
+  max-width: 100%;
+  text-align: left;
+}

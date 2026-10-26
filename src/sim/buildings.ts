@@ -10,6 +10,14 @@ export const BUILDING_TYPES = ["house", "well", "field", "mill", "bakery", "wood
 
 export type BuildingType = (typeof BUILDING_TYPES)[number];
 
+/**
+ * Runtime check for values from outside the type system, such as a tampered
+ * button value: true only for one of BUILDING_TYPES.
+ */
+export function isBuildingType(value: unknown): value is BuildingType {
+  return (BUILDING_TYPES as readonly unknown[]).includes(value);
+}
+
 /** Fixed numbers of one building type. Houses offer beds, work buildings offer workplaces. */
 export interface BuildingDefinition {
   cost: Readonly<{ wood: number; stone: number }>;

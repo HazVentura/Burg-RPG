@@ -1,7 +1,8 @@
 // All player-facing German text lives here, so it can be translated later.
 
 import type { Season } from "../sim/calendar";
-import type { SetJobTargetResult, SetPinnedJobResult } from "../sim/commands";
+import type { BuildingType } from "../sim/buildings";
+import type { OrderResult, SetJobTargetResult, SetPinnedJobResult } from "../sim/commands";
 import type { Good } from "../sim/goods";
 import type { Job } from "../sim/jobs";
 import type { Needs } from "../sim/needs";
@@ -56,6 +57,23 @@ const commandErrors: Record<CommandFailure, string> = {
   unknownResident: "Diesen Bewohner gibt es nicht mehr.",
   notAdult: "Nur Erwachsene können einen festen Beruf bekommen.",
   unknownJob: "Diesen Beruf gibt es nicht.",
+};
+
+// Keyed by BuildingType so a missing building is a type error (docs/vision.md, sections 5 and 6).
+const buildingTypes: Record<BuildingType, string> = {
+  house: "Wohnhaus",
+  well: "Brunnen",
+  field: "Feld",
+  mill: "Mühle",
+  bakery: "Bäckerei",
+  woodcutterHut: "Holzfällerhütte",
+};
+
+// One text per reason orderBuilding can fail; keyed so a new reason is a type error.
+export type OrderFailure = Extract<OrderResult, { ok: false }>["reason"];
+const orderErrors: Record<OrderFailure, string> = {
+  notEnoughGoods: "Dafür reichen Holz und Stein im Lager nicht.",
+  unknownBuilding: "Dieses Gebäude gibt es nicht.",
 };
 
 export const de = {
@@ -117,4 +135,30 @@ export const de = {
     finishedLabel: "Fertig",
     underConstructionLabel: "Im Bau",
   },
+  // Kept apart from `buildings` so the area texts of job 009 stay as they are.
+  buildingPanel: {
+    listLabel: "Gebäudeliste",
+    // "<n> Tag(e) <m> Stunde(n)"; parts that are 0 are left out.
+    daySingular: "Tag",
+    dayPlural: "Tage",
+    hourSingular: "Stunde",
+    hourPlural: "Stunden",
+    // "noch 12 Stunden" under a building in construction.
+    remainingPrefix: "noch",
+    progressLabelSuffix: "Baufortschritt",
+    workplaceSingular: "Arbeitsplatz",
+    workplacePlural: "Arbeitsplätze",
+    bedSingular: "Bett",
+    bedPlural: "Betten",
+    // "Es fehlen 5 Holz, 2 Stein".
+    missingPrefix: "Es fehlen",
+    buildHeading: "Bauen",
+    costLabel: "Kosten",
+    buildTimeLabel: "Bauzeit",
+    offersLabel: "Bietet",
+    // Button text after the building name: "Brunnen bauen".
+    buildButtonSuffix: "bauen",
+    orderErrors,
+  },
+  buildingTypes,
 } as const;

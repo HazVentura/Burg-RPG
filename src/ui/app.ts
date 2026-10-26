@@ -1,17 +1,30 @@
 // The UI reads simulation state and sends commands; it never mutates state directly.
 // Layout: a header with title and clock, then a main with one section per area.
-// The page is built once; afterwards only textContent, aria-pressed, meter
-// values, disabled and select values change, so controls keep keyboard focus
-// while the clock runs.
+// The page is built once; afterwards only textContent, aria-pressed, meter and
+// progress values, hidden, disabled and select values change, and list items
+// are added for new ids, so controls keep keyboard focus while the clock runs.
 
 import { getCalendar } from "../sim/calendar";
-import { setJobTarget, setPinnedJob, type SetJobTargetResult, type SetPinnedJobResult } from "../sim/commands";
+import type { BuildingType } from "../sim/buildings";
+import {
+  orderBuilding,
+  setJobTarget,
+  setPinnedJob,
+  type SetJobTargetResult,
+  type SetPinnedJobResult,
+} from "../sim/commands";
 import { GOODS, type Good } from "../sim/goods";
 import { JOBS, type Job } from "../sim/jobs";
 import { tick, type GameState } from "../sim/state";
 import { de } from "../text/de";
 import { advanceClock, createClock, setSpeed, togglePaused, type ClockState } from "./clock";
 import { SPEEDS, type Speed } from "./clockConstants";
+import {
+  formatBuildOptions,
+  formatBuildingList,
+  type BuildOptionRow,
+  type BuildingRow,
+} from "./formatBuildings";
 import { formatClock } from "./formatClock";
 import { formatStorage } from "./formatStorage";
 import { formatJobTargets, formatResidentList, type JobTargetRow, type NeedKey, type ResidentRow } from "./formatResidents";
@@ -66,6 +79,29 @@ interface JobTargetView {
   rows: Map<Job, JobTargetRowView>;
 }
 
+/** The elements of one building item that refresh changes. */
+interface BuildingRowView {
+  item: HTMLLIElement;
+  /** Shown while under construction, hidden once finished. */
+  construction: HTMLElement;
+  progress: HTMLProgressElement;
+  percent: HTMLElement;
+  remaining: HTMLElement;
+  /** Occupancy of a finished work building, or what the building offers. */
+  status: HTMLElement;
+}
+
+interface BuildingListView {
+  list: HTMLUListElement;
+  /** Keyed by building id; buildings are never removed, so items are only added. */
+  rows: Map<number, BuildingRowView>;
+}
+
+interface BuildOptionsView {
+  /** Missing-goods text per type, the only part of an entry that changes. */
+  missing: Map<BuildingType, HTMLElement>;
+}
+
 /** Select value for "Automatisch"; every other option value is a Job. */
 const NO_PIN = "";
 
@@ -92,7 +128,7 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
   // Order in the Bewohner area: count, error message, resident list, wish numbers.
   const commandError = document.createElement("p");
   commandError.className = "command-error";
-  // The only live region on the page; it only ever speaks after a failed command.
+  // One of two live regions (the other is in Gebäude); it only speaks after a failed job command.
   commandError.setAttribute("role", "alert");
   // Handlers read `state` when they run, never a value captured at build time.
   const residentListView = buildResidentListView((residentId, value) => {
@@ -110,6 +146,16 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     de.buildings.heading,
     formatBuildingSummary(initialState),
   );
+  // Order in the Gebäude area: counts, error message, building list, build options.
+  const orderError = document.createElement("p");
+  orderError.className = "command-error";
+  // The second live region; it only speaks after a failed order.
+  orderError.setAttribute("role", "alert");
+  const buildingListView = buildBuildingListView();
+  const buildOptionsView = buildBuildOptionsView(formatBuildOptions(initialState), (type) => {
+    runOrder(type);
+  });
+  buildingView.section.append(orderError, buildingListView.list, buildOptionsView.section);
   main.append(storageView.section, residentView.section, buildingView.section);
   root.replaceChildren(header, main);
 
@@ -120,6 +166,8 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
     updateResidentListView(residentListView, formatResidentList(state));
     updateJobTargetView(jobTargetView, formatJobTargets(state));
     updateSummaryView(buildingView, formatBuildingSummary(state));
+    updateBuildingListView(buildingListView, formatBuildingList(state));
+    updateBuildOptionsView(buildOptionsView, formatBuildOptions(state));
   };
 
   // AC11/AC12: take the new state at once, even while paused; on failure keep
@@ -131,6 +179,19 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
       commandError.textContent = "";
     } else {
       commandError.textContent = de.residentList.commandErrors[result.reason];
+    }
+    refresh();
+  }
+
+  // AC11: like runCommand, but for orders, and the message goes to the Gebäude
+  // area's own alert. Reads `state` when clicked, never at build time.
+  function runOrder(type: BuildingType): void {
+    const result = orderBuilding(state, type);
+    if (result.ok) {
+      state = result.state;
+      orderError.textContent = "";
+    } else {
+      orderError.textContent = de.buildingPanel.orderErrors[result.reason];
     }
     refresh();
   }
@@ -376,6 +437,134 @@ function buildJobTargetView(
 
   section.append(heading, list);
   return { section, rows };
+}
+
+function buildBuildingListView(): BuildingListView {
+  // Items are added by the first refresh, like the resident list.
+  const list = document.createElement("ul");
+  list.className = "building-list";
+  list.setAttribute("aria-label", de.buildingPanel.listLabel);
+  return { list, rows: new Map() };
+}
+
+/**
+ * One item per building. The progress part and the status line are both built
+ * up front; finishing only hides the progress part, so the item is never rebuilt.
+ */
+function buildBuildingRow(row: BuildingRow): BuildingRowView {
+  const item = document.createElement("li");
+  item.className = "building";
+
+  // The display name never changes: buildings are never removed, so the running number stays.
+  const name = document.createElement("h3");
+  name.className = "building-name";
+  name.textContent = row.name;
+
+  const construction = document.createElement("div");
+  construction.className = "building-construction";
+  const progress = document.createElement("progress");
+  progress.max = 100;
+  progress.setAttribute("aria-label", `${row.name}: ${de.buildingPanel.progressLabelSuffix}`);
+  // Percent and remaining time as text, so the bar does not depend on color or shape.
+  const progressText = document.createElement("span");
+  progressText.className = "building-progress-text";
+  const percent = document.createElement("span");
+  percent.className = "building-percent";
+  const remaining = document.createElement("span");
+  remaining.className = "building-remaining";
+  progressText.append(percent, " ", remaining);
+  construction.append(progress, progressText);
+
+  const status = document.createElement("p");
+  status.className = "building-status";
+
+  item.append(name, construction, status);
+  return { item, construction, progress, percent, remaining, status };
+}
+
+/** Appends items for new building ids and updates every other item in place. */
+function updateBuildingListView(view: BuildingListView, rows: readonly BuildingRow[]): void {
+  for (const row of rows) {
+    let rowView = view.rows.get(row.id);
+    if (rowView === undefined) {
+      rowView = buildBuildingRow(row);
+      view.rows.set(row.id, rowView);
+      // New buildings always come last in state.buildings, so appending keeps the order.
+      view.list.append(rowView.item);
+    }
+    updateBuildingRow(rowView, row);
+  }
+}
+
+function updateBuildingRow(view: BuildingRowView, row: BuildingRow): void {
+  view.construction.hidden = row.construction === null;
+  if (row.construction !== null) {
+    view.progress.value = row.construction.percent;
+    view.percent.textContent = `${row.construction.percent} %`;
+    view.remaining.textContent = row.construction.remainingText;
+  }
+  view.status.textContent = row.occupancy?.text ?? row.offersText ?? "";
+}
+
+/**
+ * The group "Bauen": one entry per building type. Name, cost, build time and
+ * offer never change, so they are set here; refresh only updates the missing text.
+ */
+function buildBuildOptionsView(
+  rows: readonly BuildOptionRow[],
+  onOrder: (type: BuildingType) => void,
+): BuildOptionsView & { section: HTMLElement } {
+  const section = document.createElement("div");
+  section.className = "build-options";
+  const heading = document.createElement("h3");
+  heading.id = "build-options-heading";
+  heading.textContent = de.buildingPanel.buildHeading;
+  section.setAttribute("role", "group");
+  section.setAttribute("aria-labelledby", heading.id);
+  const list = document.createElement("ul");
+  list.className = "build-option-list";
+
+  const missing = new Map<BuildingType, HTMLElement>();
+  for (const row of rows) {
+    const item = document.createElement("li");
+    item.className = "build-option";
+
+    const name = document.createElement("span");
+    name.className = "build-option-name";
+    name.textContent = row.name;
+
+    const facts = document.createElement("dl");
+    facts.className = "build-option-facts";
+    addValue(facts, de.buildingPanel.costLabel).textContent = row.costText;
+    addValue(facts, de.buildingPanel.buildTimeLabel).textContent = row.buildTimeText;
+    addValue(facts, de.buildingPanel.offersLabel).textContent = row.offersText;
+
+    const missingText = document.createElement("p");
+    missingText.className = "build-option-missing";
+
+    // Stays enabled when unaffordable, so focus is never lost when stock drops
+    // during a tick; a click then reports notEnoughGoods in the alert.
+    const button = makeButton("build-option-button");
+    button.textContent = `${row.name} ${de.buildingPanel.buildButtonSuffix}`;
+    const type = row.type;
+    button.addEventListener("click", () => onOrder(type));
+
+    item.append(name, facts, missingText, button);
+    list.append(item);
+    missing.set(type, missingText);
+  }
+
+  section.append(heading, list);
+  return { section, missing };
+}
+
+function updateBuildOptionsView(view: BuildOptionsView, rows: readonly BuildOptionRow[]): void {
+  for (const row of rows) {
+    const missingText = view.missing.get(row.type);
+    if (missingText !== undefined) {
+      missingText.textContent = row.missingText ?? "";
+    }
+  }
 }
 
 function addValue(list: HTMLDListElement, label: string): HTMLElement {
