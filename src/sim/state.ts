@@ -7,7 +7,8 @@ import { assignJobs } from "./assignment";
 import { advanceConstruction, type Building } from "./buildings";
 import { detectEvents, prependEntries, type ChronicleEntry } from "./chronicle";
 import type { Storage } from "./goods";
-import { JOBS, type Job } from "./jobs";
+import { START_JOB_TARGETS } from "./jobConstants";
+import type { Job } from "./jobs";
 import { consumeDailyFood } from "./needs";
 import { produceHour } from "./production";
 import { createRandom } from "./random";
@@ -41,9 +42,9 @@ export interface GameState {
   nextChronicleId: number;
 }
 
-/** Every job's wish number at 0, built from JOBS so no job is forgotten; a fresh object per call. */
+/** The start wish numbers; a fresh copy per call, so no game can change the constant or another game. */
 function createJobTargets(): Record<Job, number> {
-  return Object.fromEntries(JOBS.map((job) => [job, 0])) as Record<Job, number>;
+  return { ...START_JOB_TARGETS };
 }
 
 /** The free starting houses with ids 1..START_HOUSES; fresh objects on every call. */
