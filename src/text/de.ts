@@ -104,6 +104,20 @@ export const de = {
   storage: {
     heading: "Lager",
   },
+  productionChain: {
+    heading: "Produktionskette",
+    listLabel: "Schritte der Produktionskette",
+    // "Engpass: Wasser, Holz"; the goods follow in storage order.
+    bottleneckPrefix: "Engpass",
+    noBottleneck: "Kein Engpass",
+    // After a good that is missing: "Weizen 0 fehlt".
+    missing: "fehlt",
+    // "2 bei der Arbeit"; the same wording for one and for several.
+    working: "bei der Arbeit",
+    // The last step: "Brot 60, Wasser 40 → Bewohner (essen und trinken)".
+    residents: "Bewohner",
+    residentsAction: "essen und trinken",
+  },
   residents: {
     heading: "Bewohner",
     countLabel: "Anzahl",
