@@ -235,7 +235,26 @@
       "builder": "builder-013-playable-start",
       "decision": "APPROVE",
       "updated": "2026-10-26T22:24:18Z"
+    },
+    {
+      "id": "014-fixes-zoom-comments",
+      "title": "Korrekturen",
+      "branch": "factory/014-fixes-zoom-comments",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-014-fixes-zoom-comments",
+      "decision": "APPROVE",
+      "updated": "2026-10-26T22:40:35Z"
     }
   ],
-  "updated": "2026-10-26T22:24:18Z"
+  "updated": "2026-10-26T22:40:35Z"
 }
