@@ -23,6 +23,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 - [x] Bewohnerliste: Name, Alter, Beruf, Bedürfnisbalken; Beruf per Oberfläche festlegen oder freigeben; Wunschzahlen pro Beruf einstellen
 - [x] Gebäude-Panel: Gebäude in Auftrag geben (mit Kosten und Bauzeit), Baufortschritt, Belegung der Arbeitsplätze
 - [x] Chronik: Meldungen des Simulationskerns (z.B. „Mehl ist ausgegangen“, „Mühle fertig gebaut“) als Liste in der Oberfläche
+- [ ] Spielbarer Start: Ohne Eingreifen arbeitet am Start niemand (alle Wunschzahlen 0, keine Arbeitsgebäude) und nach 5 Tagen ist das Wasser aus. Sinnvolle Start-Wunschzahlen setzen und sicherstellen, dass ein Spieler Brunnen und Bäckerei bauen und besetzen kann, bevor Wasser und Brot ausgehen (Startwerte aus `docs/vision.md` Abschnitt 10)
 - [ ] Produktionsketten-Diagramm: zeigt Berufe und Waren als Kette, markiert den aktuellen Engpass (Ware, die fehlt)
 
 ## Schritt 4: Jahreszeiten und Winter
