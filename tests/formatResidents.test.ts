@@ -19,7 +19,6 @@ function ok<T extends { ok: boolean }>(result: T): Extract<T, { ok: true }> {
   return result as Extract<T, { ok: true }>;
 }
 
-/** The seeded start with one well ordered and its 24 build hours passed. */
 /** A finished well after 24 ticks, with every wish number at 0, so each test sets only what it checks. */
 function withFinishedWell(): GameState {
   const start: GameState = {
