@@ -197,7 +197,26 @@
       "builder": "builder-011-buildings-panel",
       "decision": "APPROVE",
       "updated": "2026-10-26T20:34:42Z"
+    },
+    {
+      "id": "012-chronicle",
+      "title": "Chronik",
+      "branch": "factory/012-chronicle",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-012-chronicle",
+      "decision": "APPROVE",
+      "updated": "2026-10-26T20:54:03Z"
     }
   ],
-  "updated": "2026-10-26T20:34:42Z"
+  "updated": "2026-10-26T20:54:03Z"
 }

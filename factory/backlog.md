@@ -22,7 +22,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 - [x] Grundlayout der Verwaltungsoberfläche: Kopfzeile mit Uhr und Steuerung, Bereiche für Lager, Bewohner, Gebäude; funktioniert ab Handybreite
 - [x] Bewohnerliste: Name, Alter, Beruf, Bedürfnisbalken; Beruf per Oberfläche festlegen oder freigeben; Wunschzahlen pro Beruf einstellen
 - [x] Gebäude-Panel: Gebäude in Auftrag geben (mit Kosten und Bauzeit), Baufortschritt, Belegung der Arbeitsplätze
-- [ ] Chronik: Meldungen des Simulationskerns (z.B. „Mehl ist ausgegangen“, „Mühle fertig gebaut“) als Liste in der Oberfläche
+- [x] Chronik: Meldungen des Simulationskerns (z.B. „Mehl ist ausgegangen“, „Mühle fertig gebaut“) als Liste in der Oberfläche
 - [ ] Produktionsketten-Diagramm: zeigt Berufe und Waren als Kette, markiert den aktuellen Engpass (Ware, die fehlt)
 
 ## Schritt 4: Jahreszeiten und Winter
