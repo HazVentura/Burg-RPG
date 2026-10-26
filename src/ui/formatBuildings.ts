@@ -3,7 +3,7 @@
 // app.ts only copies these values into elements it built once.
 
 import { getBuildingDefinition } from "../sim/buildingConstants";
-import { BUILDING_TYPES, isFinished, type BuildingType } from "../sim/buildings";
+import { BUILDING_TYPES, isFinished, type Building, type BuildingType } from "../sim/buildings";
 import { jobForBuilding } from "../sim/jobs";
 import type { GameState } from "../sim/state";
 import { HOURS_PER_DAY } from "../sim/timeConstants";
@@ -112,14 +112,27 @@ export function formatBuildOptions(state: GameState): BuildOptionRow[] {
   });
 }
 
-/** One row per building, in state.buildings order. */
-export function formatBuildingList(state: GameState): BuildingRow[] {
-  // Buildings are never removed, so the running number of a building never changes.
+/**
+ * Display name per building id: type name plus a running number within the
+ * type, in list order ("Wohnhaus 1", "Brunnen 2"). Shared by the building list
+ * and the chronicle, so both always name a building the same way. Buildings are
+ * never removed, so the running number of a building never changes.
+ */
+export function buildingDisplayNames(buildings: readonly Building[]): Map<number, string> {
   const countByType = new Map<BuildingType, number>();
-  return state.buildings.map((building) => {
+  const names = new Map<number, string>();
+  for (const building of buildings) {
     const number = (countByType.get(building.type) ?? 0) + 1;
     countByType.set(building.type, number);
+    names.set(building.id, `${de.buildingTypes[building.type]} ${number}`);
+  }
+  return names;
+}
 
+/** One row per building, in state.buildings order. */
+export function formatBuildingList(state: GameState): BuildingRow[] {
+  const names = buildingDisplayNames(state.buildings);
+  return state.buildings.map((building) => {
     const { buildHours, workplaces } = getBuildingDefinition(building.type);
     const finished = isFinished(building);
     const isWorkBuilding = jobForBuilding(building.type) !== null;
@@ -142,7 +155,7 @@ export function formatBuildingList(state: GameState): BuildingRow[] {
     return {
       id: building.id,
       type: building.type,
-      name: `${de.buildingTypes[building.type]} ${number}`,
+      name: names.get(building.id) ?? de.buildingTypes[building.type],
       finished,
       construction,
       occupancy,
