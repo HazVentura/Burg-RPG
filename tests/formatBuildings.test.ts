@@ -139,7 +139,8 @@ describe("formatBuildingList (AC5)", () => {
     expect(well(tickTimes(ordered, 24))).toMatchObject({
       finished: true,
       construction: null,
-      occupancy: { working: 0, places: 2, text: "0 von 2 Plätzen besetzt" },
+      // The start wish numbers staff the well at once (2 water carriers).
+      occupancy: { working: 2, places: 2, text: "2 von 2 Plätzen besetzt" },
       offersText: null,
     });
   });

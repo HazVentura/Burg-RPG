@@ -1,3 +1,4 @@
+import { START_JOB_TARGETS } from "../src/sim/jobConstants";
 import { createRandom } from "../src/sim/random";
 import { INITIAL_STORAGE } from "../src/sim/storageConstants";
 import { createSettlers } from "../src/sim/residents";
@@ -113,7 +114,8 @@ describe("tick", () => {
         { id: 2, type: "house", hoursLeft: 0 },
       ],
       nextBuildingId: 3,
-      jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
+      // The start wish numbers stay, but without work buildings nobody works.
+      jobTargets: { ...START_JOB_TARGETS },
       // 8 residents drink 40 water in 5 days (hour 120) and eat 60 bread by day 8 (hour 192); newest first.
       chronicle: [
         { kind: "goodRanOut", hour: 192, good: "bread" },

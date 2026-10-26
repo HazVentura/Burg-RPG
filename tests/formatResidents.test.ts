@@ -20,8 +20,13 @@ function ok<T extends { ok: boolean }>(result: T): Extract<T, { ok: true }> {
 }
 
 /** The seeded start with one well ordered and its 24 build hours passed. */
+/** A finished well after 24 ticks, with every wish number at 0, so each test sets only what it checks. */
 function withFinishedWell(): GameState {
-  return tickTimes(ok(orderBuilding(createInitialState(SEED), "well")).state, 24);
+  const start: GameState = {
+    ...createInitialState(SEED),
+    jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
+  };
+  return tickTimes(ok(orderBuilding(start, "well")).state, 24);
 }
 
 describe("German job and need names (AC2)", () => {
@@ -158,11 +163,12 @@ describe("formatJobTargets (AC5, AC6)", () => {
   const summary = (state: GameState) =>
     formatJobTargets(state).map((row) => [row.job, row.name, row.target, row.working, row.places]);
 
-  it("shows every job at 0 in the initial state", () => {
+  it("shows the start wish numbers and no places in the initial state", () => {
     const rows = formatJobTargets(createInitialState(SEED));
     expect(rows.map((row) => row.job)).toEqual([...JOBS]);
+    expect(rows.map((row) => row.target)).toEqual([2, 2, 1, 1, 2]);
     for (const row of rows) {
-      expect([row.target, row.working, row.places, row.canDecrease]).toEqual([0, 0, 0, false]);
+      expect([row.working, row.places, row.canDecrease]).toEqual([0, 0, true]);
       expect(row.occupancyText).toBe("0 von 0 Plätzen besetzt");
     }
   });
