@@ -25,7 +25,11 @@ export interface Calendar {
 }
 
 export function getCalendar(state: GameState): Calendar {
-  const hours = state.elapsedHours;
+  return getCalendarAt(state.elapsedHours);
+}
+
+/** The calendar at any elapsed hour, for example the hour of a chronicle entry. */
+export function getCalendarAt(hours: number): Calendar {
   const totalDays = Math.floor(hours / HOURS_PER_DAY);
   const totalSeasons = Math.floor(totalDays / DAYS_PER_SEASON);
 

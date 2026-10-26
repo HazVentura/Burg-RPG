@@ -71,6 +71,9 @@ function makeState(buildings: Building[], residents: Resident[], storage: Storag
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: targetsFor(buildings, residents),
+
+    chronicle: [],
+    nextChronicleId: 0,
   };
 }
 
