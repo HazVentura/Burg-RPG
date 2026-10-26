@@ -1,7 +1,7 @@
 // The UI reads simulation state and sends commands; it never mutates state directly.
 // Layout: a header with title and clock, then a main with one section per area.
 // The page is built once; afterwards only textContent, aria-pressed, meter and
-// progress values, hidden, disabled and select values change, and list items
+// progress values, hidden, disabled, class names and select values change, and list items
 // are added for new ids or keys, so controls keep keyboard focus while the clock runs.
 
 import { getCalendar } from "../sim/calendar";
@@ -27,6 +27,7 @@ import {
 } from "./formatBuildings";
 import { formatChronicle, type ChronicleRow } from "./formatChronicle";
 import { formatClock } from "./formatClock";
+import { formatProductionChain, type ChainGoodCell, type ChainRow, type ProductionChainView } from "./formatProductionChain";
 import { formatStorage } from "./formatStorage";
 import { formatJobTargets, formatResidentList, type JobTargetRow, type NeedKey, type ResidentRow } from "./formatResidents";
 import { formatBuildingSummary, formatResidentSummary, type SummaryRow } from "./formatSummary";
@@ -111,6 +112,27 @@ interface ChronicleView {
   items: Map<string, HTMLLIElement>;
 }
 
+/** The elements of one good in a chain step that refresh changes. */
+interface ChainGoodView {
+  /** Carries the bottleneck class. */
+  cell: HTMLElement;
+  amount: HTMLElement;
+  /** The visible "fehlt" word, hidden while the good is not missing. */
+  missingText: HTMLElement;
+}
+
+interface ChainStepView {
+  detail: HTMLElement;
+  inputs: ChainGoodView[];
+  outputs: ChainGoodView[];
+}
+
+interface ProductionChainAreaView {
+  bottleneck: HTMLElement;
+  /** In the order of the formatter's rows; the chain's shape never changes during a game. */
+  steps: ChainStepView[];
+}
+
 /** Select value for "Automatisch"; every other option value is a Job. */
 const NO_PIN = "";
 
@@ -125,10 +147,11 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
   const view = buildClockView();
   header.append(title, view.section);
 
-  // Areas in DOM order Lager, Bewohner, Gebäude, Chronik; on a phone they stack in this order.
+  // Areas in DOM order Lager, Produktionskette, Bewohner, Gebäude, Chronik; on a phone they stack in this order.
   const main = document.createElement("main");
   main.className = "areas";
   const storageView = buildStorageView();
+  const chainView = buildProductionChainView(formatProductionChain(initialState));
   const residentView = buildSummaryView(
     "residents-heading",
     de.residents.heading,
@@ -166,12 +189,13 @@ export function renderApp(root: HTMLElement, initialState: GameState): void {
   });
   buildingView.section.append(orderError, buildingListView.list, buildOptionsView.section);
   const chronicleView = buildChronicleView();
-  main.append(storageView.section, residentView.section, buildingView.section, chronicleView.section);
+  main.append(storageView.section, chainView.section, residentView.section, buildingView.section, chronicleView.section);
   root.replaceChildren(header, main);
 
   const refresh = (): void => {
     updateClockView(view, state, clock);
     updateStorageView(storageView, state);
+    updateProductionChainView(chainView, formatProductionChain(state));
     updateSummaryView(residentView, formatResidentSummary(state));
     updateResidentListView(residentListView, formatResidentList(state));
     updateJobTargetView(jobTargetView, formatJobTargets(state));
@@ -620,6 +644,110 @@ function updateStorageView(view: StorageView, state: GameState): void {
       amount.textContent = row.amount;
     }
   }
+}
+
+/**
+ * The Produktionskette area: the bottleneck line, then one list item per step,
+ * read left to right as inputs → job (workers) → outputs. Built once from the
+ * first rows; refresh only changes text, hidden and class names. Deliberately
+ * not a live region: it changes every hour and would flood screen readers at 4x.
+ */
+function buildProductionChainView(chain: ProductionChainView): ProductionChainAreaView & { section: HTMLElement } {
+  const section = buildPanel("production-chain-heading", de.productionChain.heading);
+
+  const bottleneck = document.createElement("p");
+  bottleneck.className = "chain-bottleneck";
+
+  const list = document.createElement("ol");
+  list.className = "chain-list";
+  list.setAttribute("aria-label", de.productionChain.listLabel);
+
+  const steps = chain.rows.map((row) => {
+    const { item, step } = buildChainStep(row);
+    list.append(item);
+    return step;
+  });
+
+  section.append(bottleneck, list);
+  return { section, bottleneck, steps };
+}
+
+function buildChainStep(row: ChainRow): { item: HTMLLIElement; step: ChainStepView } {
+  const item = document.createElement("li");
+  item.className = "chain-step";
+
+  const inputs = row.inputs.map(buildChainGood);
+  const outputs = row.outputs.map(buildChainGood);
+
+  const job = document.createElement("span");
+  job.className = "chain-job";
+  const name = document.createElement("span");
+  name.className = "chain-job-name";
+  name.textContent = row.name;
+  const detail = document.createElement("span");
+  detail.className = "chain-job-detail";
+  job.append(name, " (", detail, ")");
+
+  // Steps without inputs (water carrier) or outputs (residents) get no arrow on that side.
+  if (inputs.length > 0) item.append(chainGoodGroup(inputs), chainArrow());
+  item.append(job);
+  if (outputs.length > 0) item.append(chainArrow(), chainGoodGroup(outputs));
+
+  return { item, step: { detail, inputs, outputs } };
+}
+
+/** "Mehl 0, Wasser 40, Holz 50": the goods of one side of a step. */
+function chainGoodGroup(goods: readonly ChainGoodView[]): HTMLElement {
+  const group = document.createElement("span");
+  group.className = "chain-goods";
+  goods.forEach((good, index) => {
+    if (index > 0) group.append(", ");
+    group.append(good.cell);
+  });
+  return group;
+}
+
+/** Decorative: the list order and the reading order already say where goods go. */
+function chainArrow(): HTMLElement {
+  const arrow = document.createElement("span");
+  arrow.className = "chain-arrow";
+  arrow.setAttribute("aria-hidden", "true");
+  arrow.textContent = "→";
+  return arrow;
+}
+
+function buildChainGood(cell: ChainGoodCell): ChainGoodView {
+  const element = document.createElement("span");
+  element.className = "chain-good";
+  const name = document.createElement("span");
+  name.textContent = cell.name;
+  const amount = document.createElement("span");
+  amount.className = "chain-good-amount";
+  const missingText = document.createElement("span");
+  missingText.className = "chain-good-missing";
+  // The space lives inside, so a hidden "fehlt" leaves no stray space before the next comma.
+  missingText.textContent = ` ${de.productionChain.missing}`;
+  element.append(name, " ", amount, missingText);
+  return { cell: element, amount, missingText };
+}
+
+function updateProductionChainView(view: ProductionChainAreaView, chain: ProductionChainView): void {
+  view.bottleneck.textContent = chain.bottleneckText;
+  view.bottleneck.classList.toggle("chain-bottleneck-active", chain.hasBottleneck);
+  chain.rows.forEach((row, index) => {
+    const step = view.steps[index];
+    if (step === undefined) return;
+    step.detail.textContent = row.detail;
+    row.inputs.forEach((cell, i) => updateChainGood(step.inputs[i], cell));
+    row.outputs.forEach((cell, i) => updateChainGood(step.outputs[i], cell));
+  });
+}
+
+function updateChainGood(view: ChainGoodView | undefined, cell: ChainGoodCell): void {
+  if (view === undefined) return;
+  view.amount.textContent = cell.amount;
+  view.missingText.hidden = !cell.missing;
+  view.cell.classList.toggle("chain-good-is-bottleneck", cell.bottleneck);
 }
 
 function updateSummaryView(view: SummaryView, rows: readonly SummaryRow[]): void {
