@@ -254,7 +254,26 @@
       "builder": "builder-014-fixes-zoom-comments",
       "decision": "APPROVE",
       "updated": "2026-10-26T22:40:35Z"
+    },
+    {
+      "id": "015-production-chain-diagram",
+      "title": "Produktionsketten-Diagramm",
+      "branch": "factory/015-production-chain-diagram",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-015-production-chain-diagram",
+      "decision": "APPROVE",
+      "updated": "2026-10-26T22:57:59Z"
     }
   ],
-  "updated": "2026-10-26T22:40:35Z"
+  "updated": "2026-10-26T22:57:59Z"
 }

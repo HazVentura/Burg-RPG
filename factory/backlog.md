@@ -25,7 +25,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 - [x] Chronik: Meldungen des Simulationskerns (z.B. „Mehl ist ausgegangen“, „Mühle fertig gebaut“) als Liste in der Oberfläche
 - [x] Spielbarer Start: Ohne Eingreifen arbeitet am Start niemand (alle Wunschzahlen 0, keine Arbeitsgebäude) und nach 5 Tagen ist das Wasser aus. Sinnvolle Start-Wunschzahlen setzen und sicherstellen, dass ein Spieler Brunnen und Bäckerei bauen und besetzen kann, bevor Wasser und Brot ausgehen (Startwerte aus `docs/vision.md` Abschnitt 10)
 - [x] Korrekturen: Bei 200 % Zoom auf 360 px Handybreite ist der „+“-Knopf der Wunschzahl-Zeilen in der Bewohnerliste rechts abgeschnitten (Fund aus 013, Playtest-Screenshot `factory/jobs/013-playable-start/round-1/play/zoom200-3.png`); Layout muss bei 180 px Viewport ohne horizontalen Überlauf funktionieren. Außerdem veraltete doppelte Kommentare über den Test-Fixtures `wellAndField` in `tests/assignment.test.ts` und `withFinishedWell` in `tests/formatResidents.test.ts` entfernen
-- [ ] Produktionsketten-Diagramm: zeigt Berufe und Waren als Kette, markiert den aktuellen Engpass (Ware, die fehlt)
+- [x] Produktionsketten-Diagramm: zeigt Berufe und Waren als Kette, markiert den aktuellen Engpass (Ware, die fehlt)
 
 ## Schritt 4: Jahreszeiten und Winter
 
