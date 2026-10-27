@@ -600,6 +600,8 @@ body {
   gap: 0.125rem 0.5rem;
   padding: 0.375rem 0;
   border-bottom: 1px solid #e4d9c4;
+  /* Anchors the absolutely positioned .visually-hidden marks inside the step, so they never widen the page. */
+  position: relative;
 }
 
 .chain-step > * {
@@ -636,4 +638,18 @@ body {
   /* A frame broken across lines keeps its sides on every line. */
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+}
+
+/*
+ * Read by screen readers, invisible on screen (clip pattern). Not display: none
+ * or aria-hidden, which would hide the text from screen readers too.
+ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

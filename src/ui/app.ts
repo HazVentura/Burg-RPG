@@ -119,6 +119,8 @@ interface ChainGoodView {
   amount: HTMLElement;
   /** The visible "fehlt" word, hidden while the good is not missing. */
   missingText: HTMLElement;
+  /** ", Engpass" for screen readers only, hidden while the good is not a bottleneck. */
+  bottleneckMark: HTMLElement;
 }
 
 interface ChainStepView {
@@ -727,8 +729,13 @@ function buildChainGood(cell: ChainGoodCell): ChainGoodView {
   missingText.className = "chain-good-missing";
   // The space lives inside, so a hidden "fehlt" leaves no stray space before the next comma.
   missingText.textContent = ` ${de.productionChain.missing}`;
-  element.append(name, " ", amount, missingText);
-  return { cell: element, amount, missingText };
+  // The frame of .chain-good-is-bottleneck shows the bottleneck to the eye; this
+  // visually hidden word tells a screen reader: "Weizen 0 fehlt, Engpass".
+  const bottleneckMark = document.createElement("span");
+  bottleneckMark.className = "visually-hidden";
+  bottleneckMark.textContent = `, ${de.productionChain.bottleneckMark}`;
+  element.append(name, " ", amount, missingText, bottleneckMark);
+  return { cell: element, amount, missingText, bottleneckMark };
 }
 
 function updateProductionChainView(view: ProductionChainAreaView, chain: ProductionChainView): void {
@@ -748,6 +755,7 @@ function updateChainGood(view: ChainGoodView | undefined, cell: ChainGoodCell): 
   view.amount.textContent = cell.amount;
   view.missingText.hidden = !cell.missing;
   view.cell.classList.toggle("chain-good-is-bottleneck", cell.bottleneck);
+  view.bottleneckMark.hidden = !cell.bottleneck;
 }
 
 function updateSummaryView(view: SummaryView, rows: readonly SummaryRow[]): void {
