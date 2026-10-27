@@ -30,7 +30,7 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 ## Schritt 4: Jahreszeiten und Winter
 
 - [x] Korrekturen Produktionskette (Funde aus 015, siehe `factory/jobs/015-production-chain-diagram/decision.md`): Überschrift „Produktionskette“ bricht bei 200 % Zoom (180 px Viewport) mitten im Wort um, weicher Trennstrich; Engpass-Ware selbst ist für Screenreader nicht als Engpass markiert (nur fett und Rahmen); „Engpass: Brot“ sagt nicht, dass das Gebäude des Berufs fehlt, der die Ware herstellt (z. B. „keine Bäckerei“)
-- [ ] Weizen und Jahreszeiten: Weizen wächst nur im Frühling und Sommer und wird im Herbst geerntet, im Winter ruht das Feld
+- [x] Weizen und Jahreszeiten: Weizen wächst nur im Frühling und Sommer und wird im Herbst geerntet, im Winter ruht das Feld
 - [ ] Wohnraum: Betten in Wohnhäusern zuweisen, Bedürfnis Wohnraum, Obdachlose werden angezeigt
 - [ ] Wärme: Holzverbrauch pro bewohntem Haus in Herbst und Winter, Bedürfnis Wärme, ohne Haus keine Wärme
 - [ ] Gesundheit: ergibt sich träge aus Brot, Wasser, Wohnraum und Wärme; kranke Bewohner arbeiten langsamer

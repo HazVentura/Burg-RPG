@@ -1,0 +1,34 @@
+# Build: 017-wheat-and-seasons
+
+## Round 1
+- What changed:
+  - `src/sim/farmingConstants.ts` (new): `GROWING_SEASONS`, `HARVEST_SEASON`, `HARVEST_PER_FARMER_HOUR = 2`.
+  - `src/sim/production.ts`: `runWorkerHours` and `produceHour` take `season` and `fieldWheat` and return the new `fieldWheat`. The farmer case is one named helper, `farmerHour` (grow, harvest or rest), inside the shared loop. `fieldWheatAfterHour` clears the fields in winter.
+  - `src/sim/state.ts`: new `GameState.fieldWheat` (0 at start). `tick` passes the season of the start hour and `fieldWheat` into production. The order comment is updated.
+  - `src/sim/shortages.ts`: the dry run uses the same season and `fieldWheat`.
+  - `src/sim/storageConstants.ts`: `wheat: 80`, with a comment on why and on the vision balancing clause.
+  - `src/sim/productionConstants.ts`, `src/sim/jobConstants.ts`: the comments now say that the 0.5 is growth on the field.
+  - `src/text/de.ts`: `storage.fieldsPrefix` and `storage.fieldPhases: Record<Season, string>`.
+  - `src/ui/formatStorage.ts`: the pure `formatFieldWheat(state)` returns a string, or null when no finished field exists.
+  - `src/ui/app.ts`, `src/ui/styles.css`: one `<p class="storage-fields">` below the goods list, built once. Refresh only sets `textContent` and `hidden`. It reuses the existing `#5a4c38` text color and has no live region.
+  - Tests: new `tests/farming.test.ts`. Updated: `production`, `shortages`, `opening`, `storage`, `state`, `needs`, `formatStorage`, `formatProductionChain`, `assignment`, `buildings`, `chronicle`, `chainFixtures` (each fixture got `fieldWheat: 0`; tests that relied on wheat reaching storage outside autumn now use the season rules).
+- AC1: `tests/farming.test.ts` "fieldWheat in the state (AC1)". The key and shape checks are in `tests/state.test.ts` and `tests/needs.test.ts`. The rngState, settlers and buildings pins in `tests/opening.test.ts` "changes nothing else in the initial state" still pass.
+- AC2: `tests/farming.test.ts` "season of a tick (AC2)" covers 479→480 and 719→720 (also 480→481 and 720→721).
+- AC3: `tests/farming.test.ts` "grows 0.5 on the fields in spring…" and "grows the same in summer".
+- AC4: `tests/farming.test.ts` "harvests 2 an hour in autumn: 10 → 8, 1 → 0, 0 → 0", "lets two farmers share a small harvest in resident order", and "lets a miller mill the harvest in the same tick when the field comes first".
+- AC5: `tests/farming.test.ts` "rests in winter and loses the wheat…" (the hour-720 example) and "ends every winter tick with 0 on the fields".
+- AC6: `tests/farming.test.ts` "only farmers follow the seasons (AC6)", with three tests, one of them checking for no negatives over a whole year.
+- AC7: `src/sim/farmingConstants.ts`. `tests/farming.test.ts` "farming constants (AC7)" also pins `RECIPES.farmer` and `producersOf("wheat")`. `production.ts` has no inline numbers.
+- AC8: `src/sim/shortages.ts:27`. Tests: `tests/shortages.test.ts` "uses the season of the state…", "never names a good for farmers…", "gives produceHour the same storage as runWorkerHours" (all seasons) and "does not mutate its inputs"; `tests/farming.test.ts` "shared worker-hour loop with seasons (AC8)".
+- AC9: `src/sim/storageConstants.ts`, pinned in `tests/storage.test.ts`, `tests/opening.test.ts`, `tests/formatStorage.test.ts` and `tests/formatProductionChain.test.ts`. `tests/opening.test.ts` "keeps at least 12 bread at every hour until autumn even when the first orders come at hour 48" checks the measured claim. Note: commit `1341511` on main has already added "80 Weizen" to vision section 10. So the comment says the 80 deviated from the original section 10 under the balancing clause, and that section 10 has since been updated.
+- AC10: `tests/opening.test.ts`. `playOpening` takes an optional end tick. The day-20 scenarios are unchanged. The new "on day 1: fed through the end of day 30, and storage wheat rises in autumn" runs 720 ticks and reuses `expectWinnable` (needs at 100 after every midnight, no bread or water `goodRanOut`). It also asserts that storage wheat never rises before hour 480 and does rise in autumn.
+- AC11: `tests/formatStorage.test.ts` "formatFieldWheat (job 017, AC11)" covers: hidden without a finished field, the format, rounding down, the phase for every season and at 479/480, the `Record<Season>` texts, and purity. I checked the layout by eye at 360, 180 and 1280 px with a temporary state (field finished, 1234 Weizen, Erntezeit). At 180 px the line wraps inside the panel with no overflow. The temporary `main.ts` change was reverted and the tiles deleted.
+- AC12: `tests/farming.test.ts`, including "one full year (AC12)" (`toBe`: 480 at hour 480, 0 on the field and 480 in storage after 120 autumn ticks, 0 at hour 721) and "purity (AC12)".
+- AC13: Updated, not deleted:
+  - `tests/production.test.ts` AC14 is now the seasonal test "lets farmers grow, harvest or rest by season".
+  - AC19 is the 960-tick exact chain, now worked out per phase. It pins wheat 0, fieldWheat 0, flour 120, bread 260, water 120 and wood +380.
+  - The farmer-output tests now check `fieldWheat`.
+  - The `INITIAL_STORAGE` pins are now 80.
+  - The `state.test.ts` key and shape checks include `fieldWheat`.
+  - `npm run build` passes. No new dependencies.
+- Test run: `npm test`, 454 tests, all passing. `npm run build` passes.

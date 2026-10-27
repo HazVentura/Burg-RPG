@@ -292,7 +292,26 @@
       "builder": "builder-016-chain-panel-fixes",
       "decision": "APPROVE",
       "updated": "2026-10-27T16:03:30Z"
+    },
+    {
+      "id": "017-wheat-and-seasons",
+      "title": "Weizen und Jahreszeiten",
+      "branch": "factory/017-wheat-and-seasons",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-017-wheat-and-seasons",
+      "decision": "APPROVE",
+      "updated": "2026-10-27T17:18:50Z"
     }
   ],
-  "updated": "2026-10-27T16:03:30Z"
+  "updated": "2026-10-27T17:18:50Z"
 }
