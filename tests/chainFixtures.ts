@@ -64,3 +64,14 @@ export function wheatChainState(): GameState {
 export function waterAndWoodState(): GameState {
   return makeState([finished(3, "bakery")], [makeResident(1, 3)], storageWith({ flour: 10, bread: 10 }));
 }
+
+/** Job 016: the wheat chain of wheatChainState with an unstaffed field, so a field exists. */
+export function wheatWithFieldState(): GameState {
+  const state = wheatChainState();
+  return { ...state, buildings: [...state.buildings, finished(5, "field")], nextBuildingId: 6 };
+}
+
+/** Job 016: two residents with water but no bread, and no bakery at all. */
+export function noBakeryState(): GameState {
+  return makeState([], [makeResident(1, null), makeResident(2, null)], storageWith({ water: 10 }));
+}

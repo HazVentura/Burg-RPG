@@ -1,12 +1,12 @@
 import { BUILDING_DEFINITIONS } from "../src/sim/buildingConstants";
 import { GOODS } from "../src/sim/goods";
-import { JOBS } from "../src/sim/jobs";
+import { JOB_BUILDING, JOBS } from "../src/sim/jobs";
 import { BREAD_PER_RESIDENT_PER_DAY, WATER_PER_RESIDENT_PER_DAY } from "../src/sim/needConstants";
 import { CONSUMED_GOODS, RATION_PER_DAY } from "../src/sim/needs";
 import { countWorkersByJob, produceHour, runWorkerHours } from "../src/sim/production";
 import { getProductionChain, producersOf, recipeGoods } from "../src/sim/productionChain";
 import { RECIPES } from "../src/sim/productionConstants";
-import { findShortages } from "../src/sim/shortages";
+import { findShortages, missingBuildingsFor } from "../src/sim/shortages";
 import { createInitialState, tick } from "../src/sim/state";
 import {
   SEED,
@@ -14,8 +14,10 @@ import {
   makeResident,
   makeState,
   storageWith,
+  noBakeryState,
   waterAndWoodState,
   wheatChainState,
+  wheatWithFieldState,
 } from "./chainFixtures";
 
 describe("findShortages (AC1 to AC5)", () => {
@@ -232,5 +234,57 @@ describe("getProductionChain (AC6)", () => {
     const first = getProductionChain();
     first[0]?.outputs.push("tools");
     expect(getProductionChain()[0]?.outputs).toEqual(["water"]);
+  });
+});
+
+describe("missingBuildingsFor (job 016, AC6)", () => {
+  it("names the bakery for bread when no bakery exists", () => {
+    expect(missingBuildingsFor(noBakeryState(), "bread")).toEqual(["bakery"]);
+  });
+
+  it("names nothing while a bakery is under construction", () => {
+    const state = makeState([{ id: 3, type: "bakery", hoursLeft: 5 }], [makeResident(1, null)], storageWith());
+    expect(missingBuildingsFor(state, "bread")).toEqual([]);
+  });
+
+  it("names nothing for a finished bakery with no workers", () => {
+    const state = makeState([finished(3, "bakery")], [makeResident(1, null)], storageWith());
+    expect(missingBuildingsFor(state, "bread")).toEqual([]);
+  });
+
+  it("names nothing for goods no job makes", () => {
+    for (const good of ["stone", "ironOre", "tools"] as const) {
+      expect(producersOf(good)).toEqual([]);
+      expect(missingBuildingsFor(noBakeryState(), good)).toEqual([]);
+    }
+  });
+
+  it("names the field for wheat only when no field exists", () => {
+    expect(missingBuildingsFor(wheatChainState(), "wheat")).toEqual(["field"]);
+    expect(missingBuildingsFor(wheatWithFieldState(), "wheat")).toEqual([]);
+  });
+
+  it("names the well and the woodcutter hut in the two-good case", () => {
+    const state = waterAndWoodState();
+    expect(missingBuildingsFor(state, "water")).toEqual(["well"]);
+    expect(missingBuildingsFor(state, "wood")).toEqual(["woodcutterHut"]);
+  });
+
+  it("names every producing building in JOBS order without duplicates", () => {
+    const empty = makeState([], [], storageWith());
+    for (const good of GOODS) {
+      const result = missingBuildingsFor(empty, good);
+      expect(new Set(result).size).toBe(result.length);
+      const expected = JOBS.filter((job) => RECIPES[job].outputs[good] !== undefined).map((job) => JOB_BUILDING[job]);
+      expect(result).toEqual([...new Set(expected)]);
+    }
+  });
+
+  it("does not mutate the state", () => {
+    for (const state of [createInitialState(SEED), noBakeryState(), wheatChainState(), waterAndWoodState()]) {
+      const before = structuredClone(state);
+      for (const good of GOODS) missingBuildingsFor(state, good);
+      expect(state).toEqual(before);
+    }
   });
 });
