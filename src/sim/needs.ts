@@ -1,12 +1,15 @@
-// Daily food and drink: every resident eats one bread and drinks one water
-// from the castle storage (docs/vision.md, sections 5 and 7.1).
+// Daily needs (docs/vision.md, sections 5 and 7.1): every resident eats one
+// bread and drinks one water from the castle storage, and Wohnraum follows
+// whether the resident has a bed.
 //
-// The need keys are the same as the good names on purpose, so one loop over
-// CONSUMED_GOODS handles bread and water alike.
+// The food need keys are the same as the good names on purpose, so one loop
+// over CONSUMED_GOODS handles bread and water alike. Housing takes no goods,
+// so it has its own function instead.
 
 import type { Storage } from "./goods";
 import {
   BREAD_PER_RESIDENT_PER_DAY,
+  HOUSING_DROP_PER_DAY_WITHOUT,
   NEED_DROP_PER_DAY_WITHOUT,
   NEED_MAX,
   NEED_MIN,
@@ -18,6 +21,8 @@ import type { Resident } from "./residents";
 export interface Needs {
   bread: number;
   water: number;
+  /** Wohnraum: refilled each midnight with a bed, dropping without one. */
+  housing: number;
 }
 
 /** Goods consumed daily, in GOODS order; each one is also the key of its need. */
@@ -33,7 +38,7 @@ export const RATION_PER_DAY: Readonly<Record<ConsumedGood, number>> = Object.fre
 
 /** Needs of a well-supplied resident, as a fresh object. */
 export function createFullNeeds(): Needs {
-  return { bread: NEED_MAX, water: NEED_MAX };
+  return { bread: NEED_MAX, water: NEED_MAX, housing: NEED_MAX };
 }
 
 export interface DailyConsumption {
@@ -71,6 +76,21 @@ export function consumeDailyFood(residents: readonly Resident[], storage: Readon
     })),
     storage: nextStorage,
   };
+}
+
+/**
+ * One night of Wohnraum: with a bed (homeId not null) the need becomes full,
+ * without one it drops by HOUSING_DROP_PER_DAY_WITHOUT, never below NEED_MIN.
+ * Returns new residents; the input is never mutated.
+ */
+export function updateHousingNeed(residents: readonly Resident[]): Resident[] {
+  return residents.map((resident) => {
+    const housing =
+      resident.homeId !== null
+        ? NEED_MAX
+        : Math.max(NEED_MIN, resident.needs.housing - HOUSING_DROP_PER_DAY_WITHOUT);
+    return { ...resident, needs: { ...resident.needs, housing } };
+  });
 }
 
 /** Indices into `residents`, neediest first; equal needs keep list order. */

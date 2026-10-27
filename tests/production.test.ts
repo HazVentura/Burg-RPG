@@ -31,9 +31,10 @@ function makeResident(id: number, workplaceId: number | null): Resident {
     sex: id % 2 === 1 ? "female" : "male",
     bornAtHour: -5 * HOURS_PER_YEAR,
     partnerId: null,
-    needs: { bread: 100, water: 100 },
+    needs: { bread: 100, water: 100, housing: 100 },
     workplaceId,
     pinnedJob: null,
+    homeId: null,
   };
 }
 
@@ -308,12 +309,12 @@ describe("who works", () => {
 
   it("ignores age, sex, partner and needs, every hour of the day", () => {
     // produceHour itself ignores age; only job assignment keeps children out of work.
-    const newborn: Resident = { ...makeResident(1, 3), bornAtHour: 0, needs: { bread: 0, water: 0 } };
+    const newborn: Resident = { ...makeResident(1, 3), bornAtHour: 0, needs: { bread: 0, water: 0, housing: 100 } };
     const elder: Resident = { ...makeResident(2, 4), sex: "male", bornAtHour: -80 * HOURS_PER_YEAR, partnerId: 1 };
     const huts = [finished(3, "woodcutterHut"), finished(4, "woodcutterHut")];
     expect(produce(huts, [newborn, elder], emptyStorage()).wood).toBe(2 * output("woodcutter", "wood"));
     // Through tick: a hungry adult instead of the newborn, who would lose the workplace.
-    const hungry: Resident = { ...makeResident(1, 3), needs: { bread: 0, water: 0 } };
+    const hungry: Resident = { ...makeResident(1, 3), needs: { bread: 0, water: 0, housing: 100 } };
     let state = makeState(huts, [hungry, elder], emptyStorage(), 0);
     for (let hour = 0; hour < HOURS_PER_DAY; hour++) {
       const before = state.storage.wood;

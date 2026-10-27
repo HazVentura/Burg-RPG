@@ -10,7 +10,8 @@ import { detectEvents, prependEntries, type ChronicleEntry } from "./chronicle";
 import type { Storage } from "./goods";
 import { START_JOB_TARGETS } from "./jobConstants";
 import type { Job } from "./jobs";
-import { consumeDailyFood } from "./needs";
+import { assignHomes } from "./housing";
+import { consumeDailyFood, updateHousingNeed } from "./needs";
 import { produceHour } from "./production";
 import { createRandom } from "./random";
 import { createSettlers, type Resident } from "./residents";
@@ -62,7 +63,8 @@ export function createInitialState(seed: number): GameState {
   // One generator for all settler draws; its final state continues the sequence.
   const random = createRandom(seed);
   const { residents, nextResidentId } = createSettlers(random);
-  return {
+  // Same bed assignment as every tick: residents 1-4 in house 1, 5-8 in house 2.
+  return assignHomes({
     elapsedHours: 0,
     rngState: random.seed,
     // A copy, so changes in one game never leak into the constant or another game.
@@ -75,7 +77,7 @@ export function createInitialState(seed: number): GameState {
     jobTargets: createJobTargets(),
     chronicle: [],
     nextChronicleId: 0,
-  };
+  });
 }
 
 /**
@@ -89,11 +91,14 @@ export function createInitialState(seed: number): GameState {
  *    479 to 480 is still summer. Farmers grow, harvest or rest by it, which
  *    changes fieldWheat; all other jobs ignore the season.
  * 2. All buildings under construction get 1 hour closer to done.
- * 3. On the step into hour 0 of a new day, residents eat and drink
- *    (consumeDailyFood), including what was made in this last hour.
- * 4. Job assignment (assignJobs) at the new hour, so a building finished in
+ * 3. Bed assignment (assignHomes), so a house finished in this tick has its
+ *    beds taken by the end of it.
+ * 4. On the step into hour 0 of a new day, residents eat and drink
+ *    (consumeDailyFood), including what was made in this last hour, and
+ *    Wohnraum is updated by whether they have a bed now (updateHousingNeed).
+ * 5. Job assignment (assignJobs) at the new hour, so a building finished in
  *    this tick is staffed now and produces from the next tick.
- * 5. Chronicle: the start and the end of the tick are compared, and buildings
+ * 6. Chronicle: the start and the end of the tick are compared, and buildings
  *    that finished and goods that ran out are recorded at the new hour.
  */
 export function tick(state: GameState): GameState {
@@ -106,20 +111,20 @@ export function tick(state: GameState): GameState {
   };
 }
 
-/** Steps 1 to 4 of tick: everything except the chronicle. */
+/** Steps 1 to 5 of tick: everything except the chronicle. */
 function advanceHour(state: GameState): GameState {
   const season = getCalendarAt(state.elapsedHours).season;
   const production = produceHour(state.buildings, state.residents, state.storage, season, state.fieldWheat);
-  const advanced: GameState = {
+  const advanced = assignHomes({
     ...state,
     elapsedHours: state.elapsedHours + 1,
     storage: production.storage,
     fieldWheat: production.fieldWheat,
     buildings: advanceConstruction(state.buildings),
-  };
+  });
   if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {
     return assignJobs(advanced);
   }
   const { residents, storage } = consumeDailyFood(advanced.residents, advanced.storage);
-  return assignJobs({ ...advanced, residents, storage });
+  return assignJobs({ ...advanced, residents: updateHousingNeed(residents), storage });
 }

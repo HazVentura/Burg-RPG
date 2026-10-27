@@ -26,12 +26,14 @@ export interface Resident {
   bornAtHour: number;
   /** id of the partner, or null without a partner. */
   partnerId: number | null;
-  /** Food and drink supply; changed once per game day by consumeDailyFood. */
+  /** Food, drink and housing supply; changed once per game day at midnight. */
   needs: Needs;
   /** id of the building the resident works in, or null without a workplace. The job follows from its type. */
   workplaceId: number | null;
   /** Job the player pinned this resident to, or null when job assignment places them automatically. */
   pinnedJob: Job | null;
+  /** id of the house the resident sleeps in, or null when homeless. Set by assignHomes. */
+  homeId: number | null;
 }
 
 /** Completed game years of `resident` at the given elapsed hours. */
@@ -94,6 +96,8 @@ function createSettler(
     // Nobody works at the start; assignJobs places residents once wish numbers are set.
     workplaceId: null,
     pinnedJob: null,
+    // Homeless until assignHomes gives out the beds of the starting houses.
+    homeId: null,
   };
 }
 
