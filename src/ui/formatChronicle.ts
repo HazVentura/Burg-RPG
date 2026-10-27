@@ -5,7 +5,7 @@ import { getCalendarAt } from "../sim/calendar";
 import type { ChronicleEntry } from "../sim/chronicle";
 import type { GameState } from "../sim/state";
 import { de } from "../text/de";
-import { buildingDisplayNames } from "./formatBuildings";
+import { buildingDisplayNames } from "./buildingNames";
 import { formatClock } from "./formatClock";
 
 export interface ChronicleRow {

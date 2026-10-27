@@ -26,13 +26,28 @@ const pairs = (rows: { label: string; value: string }[]) => rows.map((row) => [r
 
 describe("formatResidentSummary", () => {
   it("shows 8 residents right after load", () => {
-    expect(pairs(formatResidentSummary(createInitialState(SEED)))).toEqual([["Anzahl", "8"]]);
+    expect(pairs(formatResidentSummary(createInitialState(SEED)))).toEqual([
+      ["Anzahl", "8"],
+      ["Obdachlos", "0"],
+    ]);
   });
 
   it("follows the number of residents in the state", () => {
     const state = createInitialState(SEED);
     const fewer = { ...state, residents: state.residents.slice(0, 3) };
-    expect(pairs(formatResidentSummary(fewer))).toEqual([["Anzahl", "3"]]);
+    expect(pairs(formatResidentSummary(fewer))).toEqual([
+      ["Anzahl", "3"],
+      ["Obdachlos", "0"],
+    ]);
+  });
+
+  it("counts the residents without a bed, right after Anzahl (AC10)", () => {
+    const state = createInitialState(SEED);
+    const homeless = state.residents.map((resident, index) => (index < 3 ? { ...resident, homeId: null } : resident));
+    expect(pairs(formatResidentSummary({ ...state, residents: homeless }))).toEqual([
+      ["Anzahl", "8"],
+      ["Obdachlos", "3"],
+    ]);
   });
 });
 
@@ -76,7 +91,7 @@ describe("formatBuildingSummary", () => {
 
 describe("German area texts", () => {
   it("names the Bewohner and Gebäude areas and their values", () => {
-    expect(de.residents).toEqual({ heading: "Bewohner", countLabel: "Anzahl" });
+    expect(de.residents).toEqual({ heading: "Bewohner", countLabel: "Anzahl", homelessLabel: "Obdachlos" });
     expect(de.buildings).toEqual({ heading: "Gebäude", finishedLabel: "Fertig", underConstructionLabel: "Im Bau" });
   });
 });

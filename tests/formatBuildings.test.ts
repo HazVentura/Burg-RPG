@@ -2,7 +2,7 @@ import { BUILDING_TYPES } from "../src/sim/buildings";
 import { orderBuilding, setJobTarget, type OrderResult } from "../src/sim/commands";
 import { createInitialState, tick, type GameState } from "../src/sim/state";
 import { de } from "../src/text/de";
-import { formatBuildOptions, formatBuildingList, formatDuration } from "../src/ui/formatBuildings";
+import { formatBedOccupancy, formatBuildOptions, formatBuildingList, formatDuration } from "../src/ui/formatBuildings";
 import { formatBuildingSummary } from "../src/ui/formatSummary";
 
 const SEED = 42;
@@ -110,11 +110,17 @@ describe("formatBuildOptions (AC4)", () => {
 });
 
 describe("formatBuildingList (AC5)", () => {
-  it("lists the two starting houses as finished with their beds", () => {
+  it("lists the two starting houses as finished with their beds taken", () => {
     const rows = formatBuildingList(createInitialState(SEED));
     expect(rows.map((row) => row.name)).toEqual(["Wohnhaus 1", "Wohnhaus 2"]);
     for (const row of rows) {
-      expect(row).toMatchObject({ finished: true, construction: null, occupancy: null, offersText: "4 Betten" });
+      expect(row).toMatchObject({
+        finished: true,
+        construction: null,
+        occupancy: null,
+        bedOccupancy: { taken: 4, beds: 4, text: "4 von 4 Betten belegt" },
+        offersText: null,
+      });
     }
   });
 
@@ -207,5 +213,36 @@ describe("formatBuildingSummary stays as it is (AC6)", () => {
       { label: "Fertig", value: "2" },
       { label: "Im Bau", value: "1" },
     ]);
+  });
+});
+
+describe("bed occupancy of houses (job 018, AC11)", () => {
+  it("formats taken beds with the singular only for exactly one bed", () => {
+    expect(formatBedOccupancy(3, 4)).toBe("3 von 4 Betten belegt");
+    expect(formatBedOccupancy(1, 4)).toBe("1 von 4 Betten belegt");
+    expect(formatBedOccupancy(0, 1)).toBe("0 von 1 Bett belegt");
+  });
+
+  it("counts the residents whose homeId is the house", () => {
+    const start = createInitialState(SEED);
+    // Residents 4 to 7 homeless: house 1 keeps 3, house 2 keeps 1.
+    const residents = start.residents.map((resident) =>
+      resident.id >= 4 && resident.id <= 7 ? { ...resident, homeId: null } : resident,
+    );
+    const rows = formatBuildingList({ ...start, residents });
+    expect(rows.map((row) => row.bedOccupancy?.text)).toEqual(["3 von 4 Betten belegt", "1 von 4 Betten belegt"]);
+    expect(rows.map((row) => row.offersText)).toEqual([null, null]);
+  });
+
+  it("keeps showing 4 Betten for a house under construction and in the build options", () => {
+    const state = ok(orderBuilding(createInitialState(SEED), "house")).state;
+    const newHouse = formatBuildingList(state)[2]!;
+    expect(newHouse).toMatchObject({ finished: false, bedOccupancy: null, occupancy: null, offersText: "4 Betten" });
+    expect(formatBuildOptions(state).find((row) => row.type === "house")?.offersText).toBe("4 Betten");
+  });
+
+  it("shows no bed occupancy on work buildings", () => {
+    const state = tickTimes(ok(orderBuilding(createInitialState(SEED), "well")).state, 24);
+    expect(formatBuildingList(state)[2]).toMatchObject({ type: "well", finished: true, bedOccupancy: null });
   });
 });

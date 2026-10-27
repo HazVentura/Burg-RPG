@@ -3,12 +3,16 @@
 // app.ts only copies these values into elements it built once.
 
 import { getBuildingDefinition } from "../sim/buildingConstants";
-import { BUILDING_TYPES, isFinished, type Building, type BuildingType } from "../sim/buildings";
+import { BUILDING_TYPES, isFinished, type BuildingType } from "../sim/buildings";
 import { jobForBuilding } from "../sim/jobs";
 import type { GameState } from "../sim/state";
 import { HOURS_PER_DAY } from "../sim/timeConstants";
 import { de } from "../text/de";
+import { buildingDisplayNames } from "./buildingNames";
 import { formatOccupancy } from "./formatResidents";
+
+// Re-exported so existing callers keep importing it from here.
+export { buildingDisplayNames };
 
 export interface BuildOptionRow {
   type: BuildingType;
@@ -40,6 +44,15 @@ export interface OccupancyInfo {
   text: string;
 }
 
+/** Fields only set for a finished house. */
+export interface BedOccupancyInfo {
+  /** Residents whose homeId is this house. */
+  taken: number;
+  beds: number;
+  /** "<taken> von <beds> Betten belegt". */
+  text: string;
+}
+
 export interface BuildingRow {
   id: number;
   type: BuildingType;
@@ -50,10 +63,12 @@ export interface BuildingRow {
   construction: ConstructionInfo | null;
   /** Set for a finished work building, otherwise null. Never set before it is finished. */
   occupancy: OccupancyInfo | null;
+  /** Set for a finished house, otherwise null. Never set before it is finished. */
+  bedOccupancy: BedOccupancyInfo | null;
   /**
-   * What the building offers when no occupancy is shown: "4 Betten" for a
-   * house, "2 Arbeitsplätze (Wasserträger)" for a work building under
-   * construction. Null for a finished work building, which shows its occupancy.
+   * What the building offers while under construction: "4 Betten" for a house,
+   * "2 Arbeitsplätze (Wasserträger)" for a work building. Null once finished,
+   * when the row shows its occupancy or bed occupancy instead.
    */
   offersText: string | null;
 }
@@ -112,28 +127,17 @@ export function formatBuildOptions(state: GameState): BuildOptionRow[] {
   });
 }
 
-/**
- * Display name per building id: type name plus a running number within the
- * type, in list order ("Wohnhaus 1", "Brunnen 2"). Shared by the building list
- * and the chronicle, so both always name a building the same way. Buildings are
- * never removed, so the running number of a building never changes.
- */
-export function buildingDisplayNames(buildings: readonly Building[]): Map<number, string> {
-  const countByType = new Map<BuildingType, number>();
-  const names = new Map<number, string>();
-  for (const building of buildings) {
-    const number = (countByType.get(building.type) ?? 0) + 1;
-    countByType.set(building.type, number);
-    names.set(building.id, `${de.buildingTypes[building.type]} ${number}`);
-  }
-  return names;
+/** "3 von 4 Betten belegt"; singular for exactly one bed. Sibling of formatOccupancy for jobs. */
+export function formatBedOccupancy(taken: number, beds: number): string {
+  const { bedsOf, bedSingular, bedPlural, bedsTaken } = de.buildingPanel;
+  return `${taken} ${bedsOf} ${plural(beds, bedSingular, bedPlural)} ${bedsTaken}`;
 }
 
 /** One row per building, in state.buildings order. */
 export function formatBuildingList(state: GameState): BuildingRow[] {
   const names = buildingDisplayNames(state.buildings);
   return state.buildings.map((building) => {
-    const { buildHours, workplaces } = getBuildingDefinition(building.type);
+    const { buildHours, workplaces, beds } = getBuildingDefinition(building.type);
     const finished = isFinished(building);
     const isWorkBuilding = jobForBuilding(building.type) !== null;
 
@@ -152,6 +156,13 @@ export function formatBuildingList(state: GameState): BuildingRow[] {
       occupancy = { working, places: workplaces, text: formatOccupancy(working, workplaces) };
     }
 
+    // assignHomes only gives beds in finished houses, so bed occupancy is shown only then.
+    let bedOccupancy: BedOccupancyInfo | null = null;
+    if (finished && building.type === "house") {
+      const taken = state.residents.filter((resident) => resident.homeId === building.id).length;
+      bedOccupancy = { taken, beds, text: formatBedOccupancy(taken, beds) };
+    }
+
     return {
       id: building.id,
       type: building.type,
@@ -159,7 +170,8 @@ export function formatBuildingList(state: GameState): BuildingRow[] {
       finished,
       construction,
       occupancy,
-      offersText: occupancy === null ? formatOffers(building.type) : null,
+      bedOccupancy,
+      offersText: occupancy === null && bedOccupancy === null ? formatOffers(building.type) : null,
     };
   });
 }

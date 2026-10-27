@@ -60,6 +60,7 @@ interface ResidentRowView {
   age: HTMLElement;
   job: HTMLElement;
   waitingNote: HTMLElement;
+  home: HTMLElement;
   needs: Map<NeedKey, { meter: HTMLMeterElement; value: HTMLElement; label: HTMLElement }>;
   pinLabel: HTMLLabelElement;
   pinSelect: HTMLSelectElement;
@@ -384,6 +385,7 @@ function buildResidentRow(row: ResidentRow, onPin: ResidentListView["onPin"]): R
   const waitingNote = document.createElement("span");
   waitingNote.className = "waiting-note";
   jobValue.append(job, waitingNote);
+  const home = addValue(facts, de.residentList.homeLabel);
 
   const needsBox = document.createElement("div");
   needsBox.className = "resident-needs";
@@ -426,7 +428,7 @@ function buildResidentRow(row: ResidentRow, onPin: ResidentListView["onPin"]): R
   pin.append(pinLabel, pinSelect);
 
   item.append(name, facts, needsBox, pin);
-  return { item, name, age, job, waitingNote, needs, pinLabel, pinSelect };
+  return { item, name, age, job, waitingNote, home, needs, pinLabel, pinSelect };
 }
 
 function makeOption(value: string, text: string): HTMLOptionElement {
@@ -553,7 +555,7 @@ function updateBuildingRow(view: BuildingRowView, row: BuildingRow): void {
     view.percent.textContent = `${row.construction.percent} %`;
     view.remaining.textContent = row.construction.remainingText;
   }
-  view.status.textContent = row.occupancy?.text ?? row.offersText ?? "";
+  view.status.textContent = row.occupancy?.text ?? row.bedOccupancy?.text ?? row.offersText ?? "";
 }
 
 /**
@@ -812,6 +814,7 @@ function updateResidentRow(view: ResidentRowView, row: ResidentRow): void {
   view.age.textContent = row.ageText;
   view.job.textContent = row.jobText;
   view.waitingNote.textContent = row.waitingNote ?? "";
+  view.home.textContent = row.homeText;
   for (const needRow of row.needs) {
     const need = view.needs.get(needRow.need);
     if (need === undefined) continue;

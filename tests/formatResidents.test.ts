@@ -39,8 +39,8 @@ describe("German job and need names (AC2)", () => {
     });
   });
 
-  it("names the needs Brot and Wasser", () => {
-    expect(de.needs).toEqual({ bread: "Brot", water: "Wasser" });
+  it("names the needs Brot, Wasser and Wohnraum", () => {
+    expect(de.needs).toEqual({ bread: "Brot", water: "Wasser", housing: "Wohnraum" });
   });
 
   it("has a message for every command failure", () => {
@@ -77,6 +77,7 @@ describe("formatResidentList (AC3, AC4, AC6)", () => {
       expect(row.needs).toEqual([
         { need: "bread", label: "Brot", value: 100, valueText: "100" },
         { need: "water", label: "Wasser", value: 100, valueText: "100" },
+        { need: "housing", label: "Wohnraum", value: 100, valueText: "100" },
       ]);
     });
   });
@@ -127,11 +128,12 @@ describe("formatResidentList (AC3, AC4, AC6)", () => {
 
   it("rounds a fractional need down", () => {
     const start = createInitialState(SEED);
-    const resident = { ...start.residents[0]!, needs: { bread: 42.7, water: 0.9 } };
+    const resident = { ...start.residents[0]!, needs: { bread: 42.7, water: 0.9, housing: 55.5 } };
     const row = formatResidentList({ ...start, residents: [resident] })[0]!;
     expect(row.needs.map((need) => [need.value, need.valueText])).toEqual([
       [42.7, "42"],
       [0.9, "0"],
+      [55.5, "55"],
     ]);
   });
 
@@ -208,5 +210,39 @@ describe("formatJobTargets (AC5, AC6)", () => {
     expect(summary(state)[0]).toEqual(["waterCarrier", "Wasserträger", 0, 1, 2]);
     // The wish number stays 0, so "−" stays off even though someone works there.
     expect(formatJobTargets(state)[0]?.canDecrease).toBe(false);
+  });
+});
+
+describe("Unterkunft and Wohnraum in the resident list (job 018, AC8, AC9)", () => {
+  it("shows Wohnraum as the third need bar, after Brot and Wasser", () => {
+    const row = formatResidentList(createInitialState(SEED))[0]!;
+    expect(row.needs.map((need) => need.label)).toEqual(["Brot", "Wasser", "Wohnraum"]);
+  });
+
+  it("names the house a resident sleeps in", () => {
+    const rows = formatResidentList(createInitialState(SEED));
+    expect(rows.map((row) => row.homeText)).toEqual([
+      "Wohnhaus 1",
+      "Wohnhaus 1",
+      "Wohnhaus 1",
+      "Wohnhaus 1",
+      "Wohnhaus 2",
+      "Wohnhaus 2",
+      "Wohnhaus 2",
+      "Wohnhaus 2",
+    ]);
+  });
+
+  it("shows Obdachlos for a resident without a bed, and a low Wohnraum value", () => {
+    const start = createInitialState(SEED);
+    const homeless = { ...start.residents[0]!, homeId: null, needs: { ...start.residents[0]!.needs, housing: 70 } };
+    const row = formatResidentList({ ...start, residents: [homeless] })[0]!;
+    expect(row.homeText).toBe("Obdachlos");
+    expect(row.needs[2]).toEqual({ need: "housing", label: "Wohnraum", value: 70, valueText: "70" });
+  });
+
+  it("has the German labels Unterkunft and Obdachlos", () => {
+    expect(de.residentList.homeLabel).toBe("Unterkunft");
+    expect(de.residentList.homeless).toBe("Obdachlos");
   });
 });
