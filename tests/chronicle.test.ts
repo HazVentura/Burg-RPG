@@ -65,6 +65,7 @@ function makeState(buildings: Building[], residents: Resident[], storage: Storag
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: targetsFor(buildings, residents),
+    fieldWheat: 0,
     chronicle: [],
     nextChronicleId: 0,
   };
@@ -167,12 +168,17 @@ describe("goodRanOut (AC4)", () => {
   });
 
   it("ignores a good that touches 0 within the tick but is refilled by its end", () => {
-    // The mill works first and uses the last wheat; the field listed after it makes new wheat.
-    const state = makeState(
-      [building(1, "mill"), building(2, "field")],
-      [makeResident(1, 1), makeResident(2, 2)],
-      storageWith({ wheat: 0.5 }),
-    );
+    // The mill works first and uses the last wheat; the field listed after it harvests
+    // the last 0.5 wheat on the fields in autumn (hour 480 is the first autumn hour).
+    const state = {
+      ...makeState(
+        [building(1, "mill"), building(2, "field")],
+        [makeResident(1, 1), makeResident(2, 2)],
+        storageWith({ wheat: 0.5 }),
+        481,
+      ),
+      fieldWheat: 0.5,
+    };
     const after = tick(state);
     expect(after.storage.wheat).toBe(0.5);
     expect(after.chronicle).toEqual([]);

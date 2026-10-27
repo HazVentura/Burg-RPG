@@ -42,6 +42,7 @@ export function makeState(buildings: Building[], residents: Resident[], storage:
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: Object.fromEntries(JOBS.map((job) => [job, 0])) as Record<Job, number>,
+    fieldWheat: 0,
     chronicle: [],
     nextChronicleId: 0,
   };

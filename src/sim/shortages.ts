@@ -5,6 +5,7 @@
 // - for residents: a daily good whose stock is below one ration per resident.
 
 import type { BuildingType } from "./buildings";
+import { getCalendarAt } from "./calendar";
 import { GOODS, type Good } from "./goods";
 import { JOB_BUILDING, JOBS } from "./jobs";
 import { CONSUMED_GOODS, RATION_PER_DAY } from "./needs";
@@ -22,7 +23,10 @@ export interface Shortages {
 
 /** Pure: reads the state and never mutates it. */
 export function findShortages(state: GameState): Shortages {
-  const short = new Set<Good>(runWorkerHours(state.buildings, state.residents, state.storage).blockedBy);
+  // The same season and field wheat as the coming tick, so the dry run matches produceHour.
+  const season = getCalendarAt(state.elapsedHours).season;
+  const dryRun = runWorkerHours(state.buildings, state.residents, state.storage, season, state.fieldWheat);
+  const short = new Set<Good>(dryRun.blockedBy);
 
   const residents = state.residents.length;
   if (residents > 0) {

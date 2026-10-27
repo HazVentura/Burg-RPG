@@ -28,9 +28,9 @@ describe("GOODS", () => {
 });
 
 describe("INITIAL_STORAGE", () => {
-  it("holds the start values from vision section 10", () => {
+  it("holds the start values from vision section 10, with 80 wheat to bridge to the first harvest", () => {
     expect(INITIAL_STORAGE).toEqual({
-      wheat: 0,
+      wheat: 80,
       flour: 0,
       bread: 60,
       water: 40,
@@ -53,7 +53,7 @@ describe("initial storage", () => {
     expect(storage.water).toBe(40);
     expect(storage.wood).toBe(50);
     expect(storage.stone).toBe(20);
-    expect(storage.wheat).toBe(0);
+    expect(storage.wheat).toBe(80);
     expect(storage.flour).toBe(0);
     expect(storage.ironOre).toBe(0);
     expect(storage.tools).toBe(0);

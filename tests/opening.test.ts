@@ -12,7 +12,7 @@ import { RECIPES } from "../src/sim/productionConstants";
 import { isAdult } from "../src/sim/residents";
 import { createInitialState, tick, type GameState } from "../src/sim/state";
 import { INITIAL_STORAGE } from "../src/sim/storageConstants";
-import { HOURS_PER_DAY } from "../src/sim/timeConstants";
+import { DAYS_PER_SEASON, HOURS_PER_DAY } from "../src/sim/timeConstants";
 import { formatJobTargets } from "../src/ui/formatResidents";
 
 const SEED = 42;
@@ -85,7 +85,8 @@ describe("createInitialState with start wish numbers (AC2)", () => {
   it("changes nothing else in the initial state", () => {
     const state = createInitialState(SEED);
     expect(state.storage).toEqual({ ...INITIAL_STORAGE });
-    expect(state.storage).toEqual({ wheat: 0, flour: 0, bread: 60, water: 40, wood: 50, stone: 20, ironOre: 0, tools: 0 });
+    // 80 wheat since job 017, to bridge the time until the first autumn harvest.
+    expect(state.storage).toEqual({ wheat: 80, flour: 0, bread: 60, water: 40, wood: 50, stone: 20, ironOre: 0, tools: 0 });
     expect(state.buildings).toEqual([
       { id: 1, type: "house", hoursLeft: 0 },
       { id: 2, type: "house", hoursLeft: 0 },
@@ -156,14 +157,14 @@ describe("start wish numbers act like player-set ones (AC4)", () => {
 /**
  * Plays the opening: at `firstOrderHour`, order well, field, woodcutter hut and
  * mill; in the first later hour with enough wood, order the bakery; then only
- * tick up to day 20.
+ * tick up to `endTick` (the end of day 20 by default).
  *
  * Wood is the tight part: well, field, mill and bakery together cost 45 of the
  * 50 starting wood, and the woodcutter hut makes it 55. So the hut is built
  * first and the bakery waits until the woodcutters have made the missing wood.
  * This is why the woodcutter hut matters in the opening.
  */
-function playOpening(firstOrderHour: number) {
+function playOpening(firstOrderHour: number, endTick = END_TICK) {
   let state = createInitialState(SEED);
   const ranOut: ChronicleEntry[] = [];
   const midnightNeeds: { hour: number; bread: number[]; water: number[] }[] = [];
@@ -172,11 +173,13 @@ function playOpening(firstOrderHour: number) {
   let workersAtBakeryFinish: { well: number; bakery: number } | null = null;
   let minBread = Infinity;
   let minWater = Infinity;
+  // Storage wheat at the end of every tick, indexed by the hour the tick ends at.
+  const wheatAt: number[] = [state.storage.wheat];
 
   let firstOrdersPlaced = false;
 
   // Every tick from hour 0 is watched, including those before the first orders.
-  while (state.elapsedHours < END_TICK) {
+  while (state.elapsedHours < endTick) {
     if (state.elapsedHours === firstOrderHour) {
       for (const type of ["well", "field", "woodcutterHut", "mill"] as const) {
         state = order(state, type);
@@ -207,15 +210,16 @@ function playOpening(firstOrderHour: number) {
     }
     minBread = Math.min(minBread, next.storage.bread);
     minWater = Math.min(minWater, next.storage.water);
+    wheatAt.push(next.storage.wheat);
     state = next;
   }
-  return { state, ranOut, midnightNeeds, bakeryOrderedAt, workersAtBakeryFinish, minBread, minWater };
+  return { state, ranOut, midnightNeeds, bakeryOrderedAt, workersAtBakeryFinish, minBread, minWater, wheatAt };
 }
 
-function expectWinnable(result: ReturnType<typeof playOpening>) {
-  expect(result.state.elapsedHours).toBe(END_TICK);
+function expectWinnable(result: ReturnType<typeof playOpening>, endTick = END_TICK) {
+  expect(result.state.elapsedHours).toBe(endTick);
   expect(result.bakeryOrderedAt).not.toBeNull();
-  expect(result.midnightNeeds).toHaveLength(20);
+  expect(result.midnightNeeds).toHaveLength(endTick / HOURS_PER_DAY);
   for (const { hour, bread, water } of result.midnightNeeds) {
     expect(bread, `bread needs at hour ${hour}`).toEqual(Array(8).fill(100));
     expect(water, `water needs at hour ${hour}`).toEqual(Array(8).fill(100));
@@ -244,6 +248,30 @@ describe("the opening is winnable (AC5, AC6)", () => {
     const result = playOpening(HOURS_PER_DAY);
     expect(result.bakeryOrderedAt).toBe(HOURS_PER_DAY + 29);
     expectWinnable(result);
+  });
+});
+
+describe("the first year is bridged until the first harvest (job 017, AC9, AC10)", () => {
+  const AUTUMN_START = 2 * DAYS_PER_SEASON * HOURS_PER_DAY;
+  const END_OF_DAY_30 = 30 * HOURS_PER_DAY;
+
+  it("on day 1: fed through the end of day 30, and storage wheat rises in autumn", () => {
+    const result = playOpening(0, END_OF_DAY_30);
+    expectWinnable(result, END_OF_DAY_30);
+    // Wheat only reaches storage with the harvest: before autumn it never rises.
+    for (let hour = 1; hour <= AUTUMN_START; hour++) {
+      expect(result.wheatAt[hour], `wheat at hour ${hour}`).toBeLessThanOrEqual(result.wheatAt[hour - 1] ?? 0);
+    }
+    // In autumn it rises: the harvest of 2 farmers (4 an hour) outpaces the miller (0.5 an hour).
+    expect(result.wheatAt[AUTUMN_START + 1]).toBeGreaterThan(result.wheatAt[AUTUMN_START] ?? Infinity);
+    expect(result.wheatAt[END_OF_DAY_30]).toBeGreaterThan(result.wheatAt[AUTUMN_START] ?? Infinity);
+    // 2 farmers harvest a summer's growth in under 5 days, so the whole crop is in by the end of day 30.
+    expect(result.state.fieldWheat).toBe(0);
+  });
+
+  it("keeps at least 12 bread at every hour until autumn even when the first orders come at hour 48", () => {
+    const result = playOpening(2 * HOURS_PER_DAY, AUTUMN_START);
+    expect(result.minBread).toBeGreaterThanOrEqual(12);
   });
 });
 

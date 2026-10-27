@@ -10,7 +10,7 @@ describe("formatStorage", () => {
   it("shows the initial storage in GOODS order with German names", () => {
     const rows = formatStorage(createInitialState(SEED).storage);
     expect(rows.map((row) => [row.name, row.amount])).toEqual([
-      ["Weizen", "0"],
+      ["Weizen", "80"],
       ["Mehl", "0"],
       ["Brot", "60"],
       ["Wasser", "40"],

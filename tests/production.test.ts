@@ -6,6 +6,7 @@ import { JOB_BUILDING, JOBS, jobForBuilding, type Job } from "../src/sim/jobs";
 import { BREAD_PER_RESIDENT_PER_DAY, WATER_PER_RESIDENT_PER_DAY } from "../src/sim/needConstants";
 import { consumeDailyFood } from "../src/sim/needs";
 import { produceHour } from "../src/sim/production";
+import { HARVEST_PER_FARMER_HOUR } from "../src/sim/farmingConstants";
 import { RECIPES } from "../src/sim/productionConstants";
 import type { Resident } from "../src/sim/residents";
 import { createInitialState, tick, type GameState } from "../src/sim/state";
@@ -71,10 +72,18 @@ function makeState(buildings: Building[], residents: Resident[], storage: Storag
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: targetsFor(buildings, residents),
-
+    fieldWheat: 0,
     chronicle: [],
     nextChronicleId: 0,
   };
+}
+
+/**
+ * The storage after one produceHour in a growing season with empty fields, so
+ * every job but the farmer works as it did before the seasons came.
+ */
+function produce(buildings: readonly Building[], residents: readonly Resident[], storage: Storage): Storage {
+  return produceHour(buildings, residents, storage, "spring", 0).storage;
 }
 
 function output(job: Job, good: Good): number {
@@ -206,14 +215,14 @@ describe("who works", () => {
   const storage = emptyStorage();
 
   it("lets a resident in a finished well work", () => {
-    const result = produceHour([finished(3, "well")], [makeResident(1, 3)], storage);
+    const result = produce([finished(3, "well")], [makeResident(1, 3)], storage);
     expect(result.water).toBe(output("waterCarrier", "water"));
   });
 
   it("ignores null, unknown ids, houses and buildings under construction, without throwing", () => {
     const buildings: Building[] = [finished(1, "house"), { id: 2, type: "well", hoursLeft: 5 }];
     const residents = [makeResident(1, null), makeResident(2, 99), makeResident(3, 1), makeResident(4, 2)];
-    expect(produceHour(buildings, residents, storage)).toEqual(storage);
+    expect(produce(buildings, residents, storage)).toEqual(storage);
     const state = makeState(buildings, residents, storage);
     const next = tick(state);
     expect(next.storage).toEqual(storage);
@@ -224,7 +233,7 @@ describe("who works", () => {
   it("caps workers per building at its workplaces, first in list order", () => {
     const wellPlaces = BUILDING_DEFINITIONS.well.workplaces;
     const residents = Array.from({ length: wellPlaces + 1 }, (_, i) => makeResident(i + 1, 3));
-    const result = produceHour([finished(3, "well")], residents, storage);
+    const result = produce([finished(3, "well")], residents, storage);
     expect(result.water).toBe(wellPlaces * output("waterCarrier", "water"));
     expect(result.water).toBe(1);
   });
@@ -232,25 +241,27 @@ describe("who works", () => {
   it("caps per building, so the third resident does not take a free place elsewhere", () => {
     // Residents 1 to 3 point at well 3, resident 4 at well 4.
     const residents = [makeResident(1, 3), makeResident(2, 3), makeResident(3, 3), makeResident(4, 4)];
-    const result = produceHour([finished(3, "well"), finished(4, "well")], residents, storage);
+    const result = produce([finished(3, "well"), finished(4, "well")], residents, storage);
     expect(result.water).toBe(3 * output("waterCarrier", "water"));
   });
 
   it("caps workers the same way when resident ids are not in list order", () => {
     const residents = [makeResident(9, 3), makeResident(1, 3), makeResident(2, 3)];
-    const result = produceHour([finished(3, "mill")], residents, emptyStorage({ wheat: 10 }));
+    const result = produce([finished(3, "mill")], residents, emptyStorage({ wheat: 10 }));
     expect(result.flour).toBe(BUILDING_DEFINITIONS.mill.workplaces * output("miller", "flour"));
   });
 
   it("serves two buildings of the same type each with their own workers", () => {
     const residents = [makeResident(1, 3), makeResident(2, 4), makeResident(3, 4)];
-    const result = produceHour([finished(3, "field"), finished(4, "field")], residents, storage);
-    expect(result.wheat).toBe(3 * output("farmer", "wheat"));
+    const result = produceHour([finished(3, "field"), finished(4, "field")], residents, storage, "spring", 0);
+    // Farmers grow wheat on the fields in spring, not in storage.
+    expect(result.fieldWheat).toBe(3 * output("farmer", "wheat"));
+    expect(result.storage).toEqual(storage);
   });
 
   it("handles an empty resident list and an empty building list", () => {
-    expect(produceHour([finished(3, "well")], [], storage)).toEqual(storage);
-    expect(produceHour([], [makeResident(1, 3)], storage)).toEqual(storage);
+    expect(produce([finished(3, "well")], [], storage)).toEqual(storage);
+    expect(produce([], [makeResident(1, 3)], storage)).toEqual(storage);
   });
 
   it("first produces on the tick after construction finishes", () => {
@@ -289,9 +300,10 @@ describe("who works", () => {
       HOURS_PER_DAY - 1,
     );
     const midnight = tick(state);
-    expect(midnight.storage.wheat).toBe(0);
+    expect(midnight.fieldWheat).toBe(0);
     expect(midnight.buildings[0]?.hoursLeft).toBe(0);
-    expect(tick(midnight).storage.wheat).toBe(output("farmer", "wheat"));
+    // Spring: the farmer grows wheat on the fields, not in storage (job 017).
+    expect(tick(midnight).fieldWheat).toBe(output("farmer", "wheat"));
   });
 
   it("ignores age, sex, partner and needs, every hour of the day", () => {
@@ -299,7 +311,7 @@ describe("who works", () => {
     const newborn: Resident = { ...makeResident(1, 3), bornAtHour: 0, needs: { bread: 0, water: 0 } };
     const elder: Resident = { ...makeResident(2, 4), sex: "male", bornAtHour: -80 * HOURS_PER_YEAR, partnerId: 1 };
     const huts = [finished(3, "woodcutterHut"), finished(4, "woodcutterHut")];
-    expect(produceHour(huts, [newborn, elder], emptyStorage()).wood).toBe(2 * output("woodcutter", "wood"));
+    expect(produce(huts, [newborn, elder], emptyStorage()).wood).toBe(2 * output("woodcutter", "wood"));
     // Through tick: a hungry adult instead of the newborn, who would lose the workplace.
     const hungry: Resident = { ...makeResident(1, 3), needs: { bread: 0, water: 0 } };
     let state = makeState(huts, [hungry, elder], emptyStorage(), 0);
@@ -318,7 +330,7 @@ describe("one hour of production", () => {
       water: input("baker", "water"),
       wood: input("baker", "wood"),
     });
-    const result = produceHour([finished(3, "bakery")], [makeResident(1, 3)], storage);
+    const result = produce([finished(3, "bakery")], [makeResident(1, 3)], storage);
     expect(result).toEqual(emptyStorage({ bread: output("baker", "bread") }));
   });
 
@@ -326,14 +338,14 @@ describe("one hour of production", () => {
     const full = { flour: 10, water: 10, wood: 10 };
     for (const short of ["flour", "water", "wood"] as const) {
       const storage = emptyStorage({ ...full, [short]: input("baker", short) - 0.125 });
-      const result = produceHour([finished(3, "bakery")], [makeResident(1, 3)], storage);
+      const result = produce([finished(3, "bakery")], [makeResident(1, 3)], storage);
       expect(result).toEqual(storage);
     }
   });
 
   it("lets the first baker bake and the second idle when flour runs out (AC13)", () => {
     const storage = emptyStorage({ flour: 0.25, water: 10, wood: 10 });
-    const result = produceHour([finished(3, "bakery")], [makeResident(1, 3), makeResident(2, 3)], storage);
+    const result = produce([finished(3, "bakery")], [makeResident(1, 3), makeResident(2, 3)], storage);
     expect(result.flour).toBe(0);
     expect(result.bread).toBe(output("baker", "bread"));
     expect(result.water).toBe(10 - input("baker", "water"));
@@ -380,17 +392,24 @@ describe("one hour of production", () => {
     }
   });
 
-  it("makes wheat at the same rate in every season, with no inputs (AC14)", () => {
+  it("lets farmers grow, harvest or rest by season, with no inputs (AC14, job 017)", () => {
     const seasonsSeen: string[] = [];
+    const results: { storage: Storage; fieldWheat: number }[] = [];
     SEASONS.forEach((_, index) => {
-      // Hour 5 of the third day of each season.
+      // Hour 5 of the third day of each season, with 10 wheat on the fields.
       const hour = (index * DAYS_PER_SEASON + 2) * HOURS_PER_DAY + 5;
-      const state = makeState([finished(3, "field")], [makeResident(1, 3)], emptyStorage(), hour);
+      const state = { ...makeState([finished(3, "field")], [makeResident(1, 3)], emptyStorage(), hour), fieldWheat: 10 };
       seasonsSeen.push(getCalendar(state).season);
       const next = tick(state);
-      expect(next.storage).toEqual(emptyStorage({ wheat: output("farmer", "wheat") }));
+      results.push({ storage: next.storage, fieldWheat: next.fieldWheat });
     });
     expect(seasonsSeen).toEqual(["spring", "summer", "autumn", "winter"]);
+    expect(results).toEqual([
+      { storage: emptyStorage(), fieldWheat: 10 + output("farmer", "wheat") },
+      { storage: emptyStorage(), fieldWheat: 10 + output("farmer", "wheat") },
+      { storage: emptyStorage({ wheat: HARVEST_PER_FARMER_HOUR }), fieldWheat: 10 - HARVEST_PER_FARMER_HOUR },
+      { storage: emptyStorage(), fieldWheat: 0 },
+    ]);
   });
 
   it("only changes storage (AC15)", () => {
@@ -474,9 +493,11 @@ describe("purity, determinism, plain data", () => {
   it("does not mutate the inputs of produceHour", () => {
     const { buildings, residents, storage } = allFiveState();
     const before = structuredClone({ buildings, residents, storage });
-    const result = produceHour(buildings, residents, storage);
-    expect({ buildings, residents, storage }).toStrictEqual(before);
-    expect(result).not.toBe(storage);
+    for (const season of SEASONS) {
+      const result = produceHour(buildings, residents, storage, season, 5);
+      expect({ buildings, residents, storage }).toStrictEqual(before);
+      expect(result.storage).not.toBe(storage);
+    }
   });
 
   it("survives a JSON round trip with workers in all five building types", () => {
@@ -503,24 +524,37 @@ describe("purity, determinism, plain data", () => {
     const people = residents.length;
     const end = tickTimes(start, hours);
 
-    const perHour = (good: Good): number => {
-      let net = 0;
-      for (const job of JOBS) {
-        net += (RECIPES[job].outputs[good] ?? 0) - (RECIPES[job].inputs[good] ?? 0);
-      }
-      return net;
-    };
+    // Since job 017 wheat follows the seasons, so the mill and bakery work only
+    // in some hours. Worked out phase by phase with one worker per building:
+    // - hours 0 to 160: the miller mills the 80 starting wheat (0.5 an hour),
+    //   the baker uses half the flour, so 40 flour are left at hour 160;
+    // - hours 160 to 320: the baker uses those 40 flour, then idles until autumn;
+    // - meanwhile the farmer grows 0.5 an hour for 480 hours: 240 on the field;
+    // - from hour 480 the farmer harvests 2 an hour for 120 hours, and the miller
+    //   (after the field) mills 0.5 of it every hour to hour 960, which uses up
+    //   exactly the 240 wheat; the baker bakes every hour from 480 on.
+    const millerHours = 160 + (hours - 480);
+    const bakerHours = 320 + (hours - 480);
+    const counts: Record<Job, number> = { waterCarrier: hours, farmer: 0, miller: millerHours, baker: bakerHours, woodcutter: hours };
     const eaten: Partial<Record<Good, number>> = {
       bread: days * people * BREAD_PER_RESIDENT_PER_DAY,
       water: days * people * WATER_PER_RESIDENT_PER_DAY,
     };
+    const harvested = 480 * output("farmer", "wheat");
     for (const good of GOODS) {
-      expect(end.storage[good]).toBe(INITIAL_STORAGE[good] + hours * perHour(good) - (eaten[good] ?? 0));
+      let net = INITIAL_STORAGE[good] - (eaten[good] ?? 0) + (good === "wheat" ? harvested : 0);
+      for (const job of JOBS) {
+        net += counts[job] * ((RECIPES[job].outputs[good] ?? 0) - (RECIPES[job].inputs[good] ?? 0));
+      }
+      expect(end.storage[good]).toBe(net);
     }
-    // Pinned to catch a wrong formula: wheat stays 0, flour grows by 0.25 an hour.
+    // Pinned to catch a wrong formula.
     expect(end.storage.wheat).toBe(0);
-    expect(end.storage.flour).toBe(240);
-    expect(end.storage.wood).toBe(INITIAL_STORAGE.wood + 360);
+    expect(end.fieldWheat).toBe(0);
+    expect(end.storage.flour).toBe(120);
+    expect(end.storage.bread).toBe(260);
+    expect(end.storage.water).toBe(120);
+    expect(end.storage.wood).toBe(INITIAL_STORAGE.wood + 380);
     expect(end.residents.every((r) => r.needs.bread === 100 && r.needs.water === 100)).toBe(true);
   });
 });

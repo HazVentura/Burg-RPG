@@ -8,6 +8,7 @@ import { getProductionChain, producersOf, recipeGoods } from "../src/sim/product
 import { RECIPES } from "../src/sim/productionConstants";
 import { findShortages, missingBuildingsFor } from "../src/sim/shortages";
 import { createInitialState, tick } from "../src/sim/state";
+import { DAYS_PER_SEASON, HOURS_PER_DAY, SEASONS } from "../src/sim/timeConstants";
 import {
   SEED,
   finished,
@@ -54,13 +55,38 @@ describe("findShortages (AC1 to AC5)", () => {
   });
 
   it("follows the produceHour order: a field before the mill feeds the miller in the same hour", () => {
+    // Since job 017 only a harvest puts wheat into storage, so this runs in autumn with wheat on the fields.
+    const autumn = 2 * DAYS_PER_SEASON * HOURS_PER_DAY + 1;
     const residents = [makeResident(1, 3), makeResident(2, 4)];
     const storage = storageWith({ bread: 10, water: 10 });
-    const fieldFirst = makeState([finished(3, "field"), finished(4, "mill")], residents, storage);
+    const fieldFirst = { ...makeState([finished(3, "field"), finished(4, "mill")], residents, storage), elapsedHours: autumn, fieldWheat: 10 };
     expect(findShortages(fieldFirst)).toEqual({ missing: [], bottlenecks: [] });
 
-    const millFirst = makeState([finished(4, "mill"), finished(3, "field")], residents, storage);
+    const millFirst = { ...makeState([finished(4, "mill"), finished(3, "field")], residents, storage), elapsedHours: autumn, fieldWheat: 10 };
     expect(findShortages(millFirst)).toEqual({ missing: ["wheat"], bottlenecks: ["wheat"] });
+  });
+
+  it("uses the season of the state: growing wheat does not feed the miller (job 017, AC8)", () => {
+    const residents = [makeResident(1, 3), makeResident(2, 4)];
+    const storage = storageWith({ bread: 10, water: 10 });
+    for (const season of SEASONS) {
+      const hour = SEASONS.indexOf(season) * DAYS_PER_SEASON * HOURS_PER_DAY + 1;
+      const state = { ...makeState([finished(3, "field"), finished(4, "mill")], residents, storage), elapsedHours: hour, fieldWheat: 10 };
+      const before = structuredClone(state);
+      const expected = season === "autumn" ? [] : ["wheat"];
+      expect(findShortages(state).missing).toEqual(expected);
+      expect(state).toEqual(before);
+    }
+  });
+
+  it("never names a good for farmers, who need no inputs, in any season or with empty fields (job 017, AC8)", () => {
+    const residents = [makeResident(1, 3), makeResident(2, 3)];
+    for (const season of SEASONS) {
+      const hour = SEASONS.indexOf(season) * DAYS_PER_SEASON * HOURS_PER_DAY + 1;
+      const state = { ...makeState([finished(3, "field")], residents, storageWith({ bread: 10, water: 10 })), elapsedHours: hour };
+      expect(findShortages(state)).toEqual({ missing: [], bottlenecks: [] });
+      expect(runWorkerHours(state.buildings, state.residents, state.storage, season, 0).blockedBy.size).toBe(0);
+    }
   });
 
   it("counts a good missing when only the second worker of a building is short", () => {
@@ -144,25 +170,29 @@ describe("findShortages (AC1 to AC5)", () => {
 describe("shared worker-hour loop (AC2)", () => {
   it("gives produceHour the same storage as runWorkerHours", () => {
     for (const state of [wheatChainState(), waterAndWoodState()]) {
-      const { storage } = runWorkerHours(state.buildings, state.residents, state.storage);
-      expect(produceHour(state.buildings, state.residents, state.storage)).toEqual(storage);
+      for (const season of SEASONS) {
+        const { storage, fieldWheat } = runWorkerHours(state.buildings, state.residents, state.storage, season, 3);
+        expect(produceHour(state.buildings, state.residents, state.storage, season, 3)).toEqual({ storage, fieldWheat });
+      }
     }
   });
 
   it("reports the goods that blocked an idle worker, and none for a worker who worked", () => {
     const blocked = waterAndWoodState();
-    expect([...runWorkerHours(blocked.buildings, blocked.residents, blocked.storage).blockedBy].sort()).toEqual([
+    expect([...runWorkerHours(blocked.buildings, blocked.residents, blocked.storage, "spring", 0).blockedBy].sort()).toEqual([
       "water",
       "wood",
     ]);
     const working = makeState([finished(3, "well")], [makeResident(1, 3)], storageWith());
-    expect(runWorkerHours(working.buildings, working.residents, working.storage).blockedBy.size).toBe(0);
+    expect(runWorkerHours(working.buildings, working.residents, working.storage, "spring", 0).blockedBy.size).toBe(0);
   });
 
   it("does not mutate its inputs", () => {
     const state = wheatChainState();
     const before = structuredClone(state);
-    runWorkerHours(state.buildings, state.residents, state.storage);
+    for (const season of SEASONS) {
+      runWorkerHours(state.buildings, state.residents, state.storage, season, 3);
+    }
     expect(state).toEqual(before);
   });
 
