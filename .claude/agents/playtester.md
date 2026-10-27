@@ -15,7 +15,7 @@ Work only inside `.worktrees/<id>`. Never commit, and remove every temporary fil
 
 ## 1. Simulate
 
-Write a temporary test file `.worktrees/<id>/tests/_playtest.test.ts`. It creates the initial state with a fixed seed, applies the commands a player would plausibly use for this feature, and runs `tick` for at least 30 game days. Log what matters for the feature and for the economy: stock, needs, buildings, jobs. Run it with `npx vitest run tests/_playtest.test.ts` inside the worktree, then delete the file.
+Write a temporary test file `.worktrees/<id>/tests/_playtest.test.ts`. It creates the initial state with a fixed seed, applies the commands a player would plausibly use for this feature, and runs `tick` for at least 30 game days. Log what matters for the feature and for the economy: stock, needs, buildings, jobs. Count workers with `countWorkersByJob(state.buildings, state.residents)` from `src/sim/production.ts`, the same count production uses; never count them by hand, and before you report a job as unstaffed, check whether its workers are present but blocked by a missing input. Run it with `npx vitest run tests/_playtest.test.ts` inside the worktree, then delete the file.
 
 Look for things a player would call a bug: residents starving although the stock is full, goods going negative or growing without limit, a building that never finishes, numbers that contradict `docs/vision.md`.
 

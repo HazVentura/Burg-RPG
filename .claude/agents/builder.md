@@ -18,6 +18,7 @@ You build one factory job. You stay alive across review rounds: the orchestrator
 1. Read `CLAUDE.md` and the spec.
 2. Implement the spec in the worktree. Follow the conventions in `CLAUDE.md`.
 3. Write a test for every acceptance criterion that can be tested. Run the test command from `CLAUDE.md` inside the worktree until it passes.
+   For layout criteria, look at the page yourself: run `npm run build` and `npx vite preview --port 5199 --strictPort &` in the worktree, then `python3 factory/tools/screenshot.py http://localhost:5199/ <width> <out-dir> <name>` (widths 360, 180 for 200 % zoom, 1280) and open the tiles with Read. Headless Firefox is installed; stop the preview server and delete the tiles afterwards.
 4. Commit on `factory/<id>` with small, imperative commits.
 5. Write `build.md`:
 
@@ -33,7 +34,7 @@ You build one factory job. You stay alive across review rounds: the orchestrator
 
 ## Rework round (when resumed)
 
-The message names a round folder, e.g. `factory/jobs/<id>/round-1/`. Read every file in it: four reviews, and possibly `feedback-human.md`.
+The message names a round folder, e.g. `factory/jobs/<id>/round-1/`. Read every file in it: the reviews of that round (up to five; later rounds re-run only the reviewers that asked for changes), and possibly `feedback-human.md`.
 
 - Fix every finding marked `blocker` in a review with `VERDICT: CHANGES`, and everything in `feedback-human.md`.
 - Fix `minor` findings only when the fix is cheap and safe.
