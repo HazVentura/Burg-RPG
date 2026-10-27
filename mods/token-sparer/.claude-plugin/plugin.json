@@ -1,0 +1,5 @@
+{
+  "name": "token-sparer",
+  "version": "0.1.0",
+  "description": "Zählt Tokens pro Agent (/tokens) und kürzt erfolgreiche Test- und Build-Ausgaben, bevor ein Agent sie liest."
+}
