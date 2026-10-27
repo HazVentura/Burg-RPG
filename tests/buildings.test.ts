@@ -360,7 +360,12 @@ describe("construction over time", () => {
   });
 
   it("does not touch storage, residents, rngState, nextResidentId or nextBuildingId outside midnight", () => {
-    let state = mustOrder(createInitialState(SEED), "mill");
+    // Wish numbers at 0, so the finished mill stays empty and does not mill the starting wheat.
+    const plain: GameState = {
+      ...createInitialState(SEED),
+      jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
+    };
+    let state = mustOrder(plain, "mill");
     for (let i = 0; i < 100; i++) {
       const next = tick(state);
       if (next.elapsedHours % HOURS_PER_DAY !== 0) {

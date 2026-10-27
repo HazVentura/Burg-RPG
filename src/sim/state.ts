@@ -5,6 +5,7 @@
 import { START_HOUSES } from "./buildingConstants";
 import { assignJobs } from "./assignment";
 import { advanceConstruction, type Building } from "./buildings";
+import { getCalendarAt } from "./calendar";
 import { detectEvents, prependEntries, type ChronicleEntry } from "./chronicle";
 import type { Storage } from "./goods";
 import { START_JOB_TARGETS } from "./jobConstants";
@@ -23,6 +24,11 @@ export interface GameState {
   rngState: number;
   /** Central castle storage: the stock of every good. */
   storage: Storage;
+  /**
+   * Wheat growing on all fields together, not yet in storage. Farmers grow it
+   * in spring and summer and harvest it into storage in autumn; it is lost in winter.
+   */
+  fieldWheat: number;
   /** All residents in creation order. */
   residents: Resident[];
   /** id for the next new resident; only ever grows, so ids are never reused. */
@@ -61,6 +67,7 @@ export function createInitialState(seed: number): GameState {
     rngState: random.seed,
     // A copy, so changes in one game never leak into the constant or another game.
     storage: { ...INITIAL_STORAGE },
+    fieldWheat: 0,
     residents,
     nextResidentId,
     buildings: createStartHouses(),
@@ -78,6 +85,9 @@ export function createInitialState(seed: number): GameState {
  * Order per tick:
  * 1. Production on the buildings as they are at the start of the tick, so a
  *    building finished in this tick works from the next one (produceHour).
+ *    The season is the one of the hour the tick starts in: the tick from hour
+ *    479 to 480 is still summer. Farmers grow, harvest or rest by it, which
+ *    changes fieldWheat; all other jobs ignore the season.
  * 2. All buildings under construction get 1 hour closer to done.
  * 3. On the step into hour 0 of a new day, residents eat and drink
  *    (consumeDailyFood), including what was made in this last hour.
@@ -98,10 +108,13 @@ export function tick(state: GameState): GameState {
 
 /** Steps 1 to 4 of tick: everything except the chronicle. */
 function advanceHour(state: GameState): GameState {
+  const season = getCalendarAt(state.elapsedHours).season;
+  const production = produceHour(state.buildings, state.residents, state.storage, season, state.fieldWheat);
   const advanced: GameState = {
     ...state,
     elapsedHours: state.elapsedHours + 1,
-    storage: produceHour(state.buildings, state.residents, state.storage),
+    storage: production.storage,
+    fieldWheat: production.fieldWheat,
     buildings: advanceConstruction(state.buildings),
   };
   if (advanced.elapsedHours % HOURS_PER_DAY !== 0) {

@@ -22,7 +22,10 @@ function define(recipe: Recipe): Readonly<Recipe> {
 
 export const RECIPES: Readonly<Record<Job, Readonly<Recipe>>> = Object.freeze({
   waterCarrier: define({ inputs: {}, outputs: { water: 0.5 } }),
-  // Year-round for now; seasonal wheat comes with "Weizen und Jahreszeiten".
+  // The 0.5 wheat grows on the fields (GameState.fieldWheat) in spring and summer;
+  // it does not go into storage. Farmers harvest it into storage in autumn and rest
+  // in winter (see farmingConstants.ts and farmerHour in production.ts). The recipe
+  // stays here so the production chain still names the farmer as the maker of wheat.
   farmer: define({ inputs: {}, outputs: { wheat: 0.5 } }),
   miller: define({ inputs: { wheat: 0.5 }, outputs: { flour: 0.5 } }),
   // The wood heats the oven.

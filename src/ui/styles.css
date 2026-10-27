@@ -201,6 +201,16 @@ body {
 }
 
 /* Safety-net message after a refused command; takes no space while empty. */
+/* The wheat on the fields, below the goods list of the Lager panel. */
+.storage-fields {
+  margin: 0.5rem 0 0;
+  color: #5a4c38;
+}
+
+.storage-fields[hidden] {
+  display: none;
+}
+
 .command-error {
   margin: 0.75rem 0 0;
   padding: 0.5rem 0.75rem;

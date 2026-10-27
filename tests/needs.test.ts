@@ -41,7 +41,7 @@ function stateBeforeMidnight(residents: Resident[], storage: Storage): GameState
     buildings: [],
     nextBuildingId: 1,
     jobTargets: { waterCarrier: 0, farmer: 0, miller: 0, baker: 0, woodcutter: 0 },
-
+    fieldWheat: 0,
     chronicle: [],
     nextChronicleId: 0,
   };
@@ -101,11 +101,12 @@ describe("starting needs", () => {
     expect(createInitialState(-1).rngState).toBe(1007906551);
   });
 
-  it("adds no top-level field to GameState beyond the buildings, jobTargets and chronicle fields", () => {
+  it("adds no top-level field to GameState beyond the buildings, jobTargets, chronicle and fieldWheat fields", () => {
     expect(Object.keys(createInitialState(SEED)).sort()).toEqual([
       "buildings",
       "chronicle",
       "elapsedHours",
+      "fieldWheat",
       "jobTargets",
       "nextBuildingId",
       "nextChronicleId",

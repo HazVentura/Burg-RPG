@@ -3,6 +3,8 @@
 
 import { getBuildingDefinition } from "./buildingConstants";
 import { isFinished, type Building } from "./buildings";
+import type { Season } from "./calendar";
+import { GROWING_SEASONS, HARVEST_PER_FARMER_HOUR, HARVEST_SEASON } from "./farmingConstants";
 import type { Good, Storage } from "./goods";
 import { JOBS, jobForBuilding, type Job } from "./jobs";
 import { RECIPES, type Recipe } from "./productionConstants";
@@ -59,6 +61,8 @@ export function countWorkersByJob(buildings: readonly Building[], residents: rea
 export interface WorkerHoursResult {
   /** The storage after every worker-hour; a new object. */
   storage: Storage;
+  /** The wheat on the fields after every worker-hour (see farmerHour). */
+  fieldWheat: number;
   /**
    * Goods some worker could not work for: every input whose stock was below the
    * recipe amount at the turn of a worker who stayed idle. Workers who worked add nothing.
@@ -67,26 +71,63 @@ export interface WorkerHoursResult {
 }
 
 /**
+ * One farmer worker-hour, by season. The farmer is the only job that follows
+ * the seasons, and the only one that touches the wheat on the fields:
+ * - growing seasons: the recipe output grows on the fields, not in storage;
+ * - harvest season: up to HARVEST_PER_FARMER_HOUR moves from the fields into storage;
+ * - any other season (winter): the fields rest and nothing happens.
+ * Writes into `storage` (the loop's private copy) and returns the new field wheat.
+ */
+function farmerHour(season: Season, storage: Storage, fieldWheat: number): number {
+  if (GROWING_SEASONS.includes(season)) {
+    return fieldWheat + (RECIPES.farmer.outputs.wheat ?? 0);
+  }
+  if (season === HARVEST_SEASON) {
+    const harvested = Math.min(HARVEST_PER_FARMER_HOUR, fieldWheat);
+    storage.wheat += harvested;
+    return fieldWheat - harvested;
+  }
+  return fieldWheat;
+}
+
+/**
+ * Wheat left on the fields at the end of an hour. Outside the growing and
+ * harvest seasons the fields rest, and wheat not harvested by the end of the
+ * harvest season is lost.
+ */
+function fieldWheatAfterHour(season: Season, fieldWheat: number): number {
+  return GROWING_SEASONS.includes(season) || season === HARVEST_SEASON ? fieldWheat : 0;
+}
+
+/**
  * The worker-hour loop shared by produceHour and the shortage check, so both
  * follow exactly the same rules. Worker-hours run one after the other:
  * buildings in list order, the workers of one building in resident order, so
  * outputs of an earlier worker-hour are available to later ones. A worker whose
  * inputs are not all fully in storage produces nothing and takes nothing.
+ * Farmers follow the season of the hour instead of their recipe (farmerHour).
  * The inputs are never mutated.
  */
 export function runWorkerHours(
   buildings: readonly Building[],
   residents: readonly Resident[],
   storage: Readonly<Storage>,
+  season: Season,
+  fieldWheat: number,
 ): WorkerHoursResult {
   const workers = countWorkers(buildings, residents);
   const next: Storage = { ...storage };
+  let field = fieldWheat;
   const blockedBy = new Set<Good>();
 
   for (const building of buildings) {
     const count = workers.get(building.id) ?? 0;
     const job = jobForBuilding(building.type);
     if (count === 0 || job === null) continue;
+    if (job === "farmer") {
+      for (let worker = 0; worker < count; worker++) field = farmerHour(season, next, field);
+      continue;
+    }
     const inputs = amounts(RECIPES[job].inputs);
     const outputs = amounts(RECIPES[job].outputs);
     for (let worker = 0; worker < count; worker++) {
@@ -100,17 +141,27 @@ export function runWorkerHours(
     }
   }
 
-  return { storage: next, blockedBy };
+  return { storage: next, fieldWheat: fieldWheatAfterHour(season, field), blockedBy };
+}
+
+/** Result of one game hour of production. */
+export interface ProductionResult {
+  storage: Storage;
+  fieldWheat: number;
 }
 
 /**
  * One game hour of production (see runWorkerHours for the order and rules).
+ * `season` is the season of the hour the tick starts in.
  * Returns a new storage; the inputs are never mutated.
  */
 export function produceHour(
   buildings: readonly Building[],
   residents: readonly Resident[],
   storage: Readonly<Storage>,
-): Storage {
-  return runWorkerHours(buildings, residents, storage).storage;
+  season: Season,
+  fieldWheat: number,
+): ProductionResult {
+  const { storage: next, fieldWheat: field } = runWorkerHours(buildings, residents, storage, season, fieldWheat);
+  return { storage: next, fieldWheat: field };
 }

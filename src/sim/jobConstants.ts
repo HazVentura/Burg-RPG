@@ -10,7 +10,9 @@ import type { Job } from "./jobs";
  * - 2 water carriers make 24 water a day: 8 for drinking, 6 for the baker.
  * - 1 baker makes 12 bread a day, which covers the 8 eaten.
  * - 1 miller makes the 12 flour a day; the baker needs 6 of it.
- * - 2 farmers make 24 wheat a day, which covers the miller's 12.
+ * - 2 farmers grow 24 wheat a day on the fields in spring and summer, 480 a
+ *   year, and harvest it into storage in autumn (4 an hour, so 120 hours).
+ *   That covers the miller's 12 a day, 480 a year.
  * - 2 woodcutters make 24 wood a day: 3 for the baker, the rest for building.
  */
 export const START_JOB_TARGETS: Readonly<Record<Job, number>> = Object.freeze({

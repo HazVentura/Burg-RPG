@@ -70,9 +70,9 @@ describe("formatProductionChain (AC8)", () => {
     expect(chain.hasBottleneck).toBe(false);
     expect(chain.rows.map(describeRow)).toEqual([
       " → Wasserträger (0 bei der Arbeit) → Wasser 40",
-      " → Bauer (0 bei der Arbeit) → Weizen 0",
+      " → Bauer (0 bei der Arbeit) → Weizen 80",
       " → Holzfäller (0 bei der Arbeit) → Holz 50",
-      "Weizen 0 → Müller (0 bei der Arbeit) → Mehl 0",
+      "Weizen 80 → Müller (0 bei der Arbeit) → Mehl 0",
       "Mehl 0, Wasser 40, Holz 50 → Bäcker (0 bei der Arbeit) → Brot 60",
       "Brot 60, Wasser 40 → Bewohner (essen und trinken) → ",
     ]);

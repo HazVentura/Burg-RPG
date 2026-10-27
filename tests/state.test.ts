@@ -107,6 +107,7 @@ describe("tick", () => {
       elapsedHours: 960,
       rngState: initial.rngState,
       storage: { ...INITIAL_STORAGE, bread: 0, water: 0 },
+      fieldWheat: 0,
       residents: initial.residents.map((resident) => ({ ...resident, needs: { bread: 0, water: 0 }, workplaceId: null, pinnedJob: null })),
       nextResidentId: 9,
       buildings: [
@@ -156,6 +157,7 @@ describe("GameState serialization", () => {
       "buildings",
       "chronicle",
       "elapsedHours",
+      "fieldWheat",
       "jobTargets",
       "nextBuildingId",
       "nextChronicleId",
@@ -164,7 +166,14 @@ describe("GameState serialization", () => {
       "rngState",
       "storage",
     ]);
-    for (const value of [state.elapsedHours, state.rngState, state.nextResidentId, state.nextBuildingId, state.nextChronicleId]) {
+    for (const value of [
+      state.elapsedHours,
+      state.rngState,
+      state.nextResidentId,
+      state.nextBuildingId,
+      state.nextChronicleId,
+      state.fieldWheat,
+    ]) {
       expect(typeof value).toBe("number");
       expect(Number.isFinite(value)).toBe(true);
     }

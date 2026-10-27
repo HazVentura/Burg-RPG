@@ -57,7 +57,7 @@ function makeState(
     buildings,
     nextBuildingId: Math.max(0, ...buildings.map((b) => b.id)) + 1,
     jobTargets: { ...zeroTargets(), ...targets },
-
+    fieldWheat: 0,
     chronicle: [],
     nextChronicleId: 0,
   };
@@ -534,8 +534,11 @@ describe("assignment in the tick (AC13, AC14)", () => {
     const midnight = tick(start);
     expect(midnight.elapsedHours % HOURS_PER_DAY).toBe(0);
     expect(places(midnight)).toEqual([3]);
-    expect(midnight.storage.wheat).toBe(INITIAL_STORAGE.wheat);
-    expect(tick(midnight).storage.wheat).toBe(INITIAL_STORAGE.wheat + 0.5);
+    expect(midnight.fieldWheat).toBe(0);
+    // Spring: the farmer's work grows wheat on the fields from the next tick (job 017).
+    const next = tick(midnight);
+    expect(next.fieldWheat).toBe(0.5);
+    expect(next.storage.wheat).toBe(INITIAL_STORAGE.wheat);
   });
 
   it("stays pure and deterministic with targets and pins", () => {
