@@ -70,6 +70,17 @@ const buildingTypes: Record<BuildingType, string> = {
   woodcutterHut: "Holzfällerhütte",
 };
 
+// The cause after a bottleneck good: "Engpass: Brot (keine Bäckerei)". One text per
+// building type with its own article, so a new type without a text is a type error.
+const missingBuilding: Record<BuildingType, string> = {
+  house: "kein Wohnhaus",
+  well: "kein Brunnen",
+  field: "kein Feld",
+  mill: "keine Mühle",
+  bakery: "keine Bäckerei",
+  woodcutterHut: "keine Holzfällerhütte",
+};
+
 // One text per reason orderBuilding can fail; keyed so a new reason is a type error.
 export type OrderFailure = Extract<OrderResult, { ok: false }>["reason"];
 const orderErrors: Record<OrderFailure, string> = {
@@ -105,13 +116,19 @@ export const de = {
     heading: "Lager",
   },
   productionChain: {
-    heading: "Produktionskette",
+    // The soft hyphen (U+00AD) lets the heading break as "Produktions-" / "kette"
+    // at 200 % zoom on a phone instead of mid-word without a hyphen.
+    heading: "Produktions\u00ADkette",
     listLabel: "Schritte der Produktionskette",
-    // "Engpass: Wasser, Holz"; the goods follow in storage order.
+    // "Engpass: Wasser, Holz"; the goods follow in storage order, each with its
+    // cause in parentheses when its building is missing: "Engpass: Brot (keine Bäckerei)".
     bottleneckPrefix: "Engpass",
+    missingBuilding,
     noBottleneck: "Kein Engpass",
     // After a good that is missing: "Weizen 0 fehlt".
     missing: "fehlt",
+    // Read by screen readers after "fehlt" on a bottleneck good: "Weizen 0 fehlt, Engpass".
+    bottleneckMark: "Engpass",
     // "2 bei der Arbeit"; the same wording for one and for several.
     working: "bei der Arbeit",
     // The last step: "Brot 60, Wasser 40 → Bewohner (essen und trinken)".

@@ -6,7 +6,7 @@ import type { Job } from "../sim/jobs";
 import { CONSUMED_GOODS } from "../sim/needs";
 import { countWorkersByJob } from "../sim/production";
 import { getProductionChain } from "../sim/productionChain";
-import { findShortages } from "../sim/shortages";
+import { findShortages, missingBuildingsFor } from "../sim/shortages";
 import type { GameState } from "../sim/state";
 import { de } from "../text/de";
 
@@ -66,10 +66,16 @@ export function formatProductionChain(state: GameState): ProductionChainView {
     outputs: [],
   });
 
+  // A bottleneck good whose building does not exist at all names it in parentheses,
+  // so the player sees what to build: "Engpass: Brot (keine Bäckerei)".
+  const bottleneckName = (good: Good): string => {
+    const causes = missingBuildingsFor(state, good).map((type) => de.productionChain.missingBuilding[type]);
+    return causes.length === 0 ? de.goods[good] : `${de.goods[good]} (${causes.join(", ")})`;
+  };
   const bottleneckText =
     bottlenecks.length === 0
       ? de.productionChain.noBottleneck
-      : `${de.productionChain.bottleneckPrefix}: ${bottlenecks.map((good) => de.goods[good]).join(", ")}`;
+      : `${de.productionChain.bottleneckPrefix}: ${bottlenecks.map(bottleneckName).join(", ")}`;
 
   return { bottleneckText, hasBottleneck: bottlenecks.length > 0, rows };
 }

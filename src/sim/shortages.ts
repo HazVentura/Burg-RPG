@@ -4,12 +4,13 @@
 //   a dry run of the exact worker-hour loop of produceHour;
 // - for residents: a daily good whose stock is below one ration per resident.
 
+import type { BuildingType } from "./buildings";
 import { GOODS, type Good } from "./goods";
-import { JOBS } from "./jobs";
+import { JOB_BUILDING, JOBS } from "./jobs";
 import { CONSUMED_GOODS, RATION_PER_DAY } from "./needs";
 import { runWorkerHours } from "./production";
 import { RECIPES } from "./productionConstants";
-import { recipeGoods } from "./productionChain";
+import { producersOf, recipeGoods } from "./productionChain";
 import type { GameState } from "./state";
 
 export interface Shortages {
@@ -42,4 +43,18 @@ export function findShortages(state: GameState): Shortages {
       ),
   );
   return { missing, bottlenecks };
+}
+
+/**
+ * The buildings whose absence explains why `good` is short: the building of
+ * every job that makes `good`, but only when not one such building exists,
+ * finished or under construction. Once any producer's building stands or is
+ * being built, the cause lies elsewhere (no workers, inputs), so the result is
+ * empty. A good no job makes also gives an empty result.
+ * In JOBS order, without duplicates. Pure: never mutates the state.
+ */
+export function missingBuildingsFor(state: GameState, good: Good): BuildingType[] {
+  const types = [...new Set(producersOf(good).map((job) => JOB_BUILDING[job]))];
+  const anyExists = state.buildings.some((building) => types.includes(building.type));
+  return anyExists ? [] : types;
 }
