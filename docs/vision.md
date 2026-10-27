@@ -113,7 +113,7 @@ Wärme ────┘
 
 ## 10. Spielstart
 
-Frühling, Tag 1. 4 Paare (8 Erwachsene), 2 Wohnhäuser, Lager mit 60 Brot, 40 Wasser, 50 Holz, 20 Stein.
+Frühling, Tag 1. 4 Paare (8 Erwachsene), 2 Wohnhäuser, Lager mit 60 Brot, 40 Wasser, 80 Weizen, 50 Holz, 20 Stein. Der Weizen überbrückt die Zeit bis zur ersten Ernte im Herbst.
 
 ## 11. Fahrplan
 
