@@ -16,9 +16,10 @@ export function makeResident(id: number, workplaceId: number | null): Resident {
     sex: id % 2 === 1 ? "female" : "male",
     bornAtHour: -25 * HOURS_PER_YEAR,
     partnerId: null,
-    needs: { bread: 100, water: 100 },
+    needs: { bread: 100, water: 100, housing: 100 },
     workplaceId,
     pinnedJob: null,
+    homeId: null,
   };
 }
 

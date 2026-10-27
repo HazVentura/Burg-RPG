@@ -52,9 +52,10 @@ describe("getAgeYears", () => {
     sex: "female",
     bornAtHour: -5 * HOURS_PER_YEAR,
     partnerId: null,
-    needs: { bread: NEED_MAX, water: NEED_MAX },
+    needs: { bread: NEED_MAX, water: NEED_MAX, housing: NEED_MAX },
     workplaceId: null,
     pinnedJob: null,
+    homeId: null,
   };
 
   it("counts completed game years", () => {
@@ -81,7 +82,7 @@ describe("starting settlers", () => {
 
   it("has exactly these fields on every resident", () => {
     for (const resident of createInitialState(SEED).residents) {
-      expect(Object.keys(resident).sort()).toEqual(["bornAtHour", "id", "name", "needs", "partnerId", "pinnedJob", "sex", "workplaceId"]);
+      expect(Object.keys(resident).sort()).toEqual(["bornAtHour", "homeId", "id", "name", "needs", "partnerId", "pinnedJob", "sex", "workplaceId"]);
     }
   });
 

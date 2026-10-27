@@ -167,7 +167,7 @@ describe("start wish numbers act like player-set ones (AC4)", () => {
 function playOpening(firstOrderHour: number, endTick = END_TICK) {
   let state = createInitialState(SEED);
   const ranOut: ChronicleEntry[] = [];
-  const midnightNeeds: { hour: number; bread: number[]; water: number[] }[] = [];
+  const midnightNeeds: { hour: number; bread: number[]; water: number[]; housing: number[] }[] = [];
   let bakeryOrderedAt: number | null = null;
   let bakeryId: number | null = null;
   let workersAtBakeryFinish: { well: number; bakery: number } | null = null;
@@ -206,6 +206,7 @@ function playOpening(firstOrderHour: number, endTick = END_TICK) {
         hour: next.elapsedHours,
         bread: next.residents.map((r) => r.needs.bread),
         water: next.residents.map((r) => r.needs.water),
+        housing: next.residents.map((r) => r.needs.housing),
       });
     }
     minBread = Math.min(minBread, next.storage.bread);
@@ -220,9 +221,11 @@ function expectWinnable(result: ReturnType<typeof playOpening>, endTick = END_TI
   expect(result.state.elapsedHours).toBe(endTick);
   expect(result.bakeryOrderedAt).not.toBeNull();
   expect(result.midnightNeeds).toHaveLength(endTick / HOURS_PER_DAY);
-  for (const { hour, bread, water } of result.midnightNeeds) {
+  for (const { hour, bread, water, housing } of result.midnightNeeds) {
     expect(bread, `bread needs at hour ${hour}`).toEqual(Array(8).fill(100));
     expect(water, `water needs at hour ${hour}`).toEqual(Array(8).fill(100));
+    // The 8 beds of the two starting houses house all 8 settlers (job 018, AC7).
+    expect(housing, `housing needs at hour ${hour}`).toEqual(Array(8).fill(100));
   }
   const breadOrWater = result.ranOut.filter((e) => e.kind === "goodRanOut" && (e.good === "bread" || e.good === "water"));
   expect(breadOrWater).toEqual([]);

@@ -35,9 +35,10 @@ function makeResident(id: number, fields: Partial<Resident> = {}): Resident {
     sex: id % 2 === 1 ? "female" : "male",
     bornAtHour: -ADULT_AGE_YEARS * HOURS_PER_YEAR,
     partnerId: null,
-    needs: { bread: 100, water: 100 },
+    needs: { bread: 100, water: 100, housing: 100 },
     workplaceId: null,
     pinnedJob: null,
+    homeId: null,
     ...fields,
   };
 }

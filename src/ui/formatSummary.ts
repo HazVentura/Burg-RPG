@@ -10,8 +10,13 @@ export interface SummaryRow {
   value: string;
 }
 
+/** The homeless row is shown at 0 too, so the rows never change shape. */
 export function formatResidentSummary(state: GameState): SummaryRow[] {
-  return [{ label: de.residents.countLabel, value: String(state.residents.length) }];
+  const homeless = state.residents.filter((resident) => resident.homeId === null).length;
+  return [
+    { label: de.residents.countLabel, value: String(state.residents.length) },
+    { label: de.residents.homelessLabel, value: String(homeless) },
+  ];
 }
 
 /** Houses count as buildings. Zero is shown too, so the rows never change shape. */

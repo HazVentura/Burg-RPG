@@ -58,6 +58,7 @@ const jobs: Record<Job, string> = {
 const needs: Record<keyof Needs, string> = {
   bread: "Brot",
   water: "Wasser",
+  housing: "Wohnraum",
 };
 
 // One text per reason a job command can fail; keyed so a new reason is a type error.
@@ -150,6 +151,8 @@ export const de = {
   residents: {
     heading: "Bewohner",
     countLabel: "Anzahl",
+    // Residents without a bed; shown at 0 too.
+    homelessLabel: "Obdachlos",
   },
   jobs,
   needs,
@@ -162,6 +165,9 @@ export const de = {
     jobLabel: "Beruf",
     noJob: "Ohne Arbeit",
     waitingForWorkplace: "Wartet auf Arbeitsplatz",
+    // The house name ("Wohnhaus 2") or "Obdachlos" follows.
+    homeLabel: "Unterkunft",
+    homeless: "Obdachlos",
     needsLabel: "Bedürfnisse",
     // Visible label of the pin select; the resident's name follows.
     pinLabelPrefix: "Zuteilung für",
@@ -201,6 +207,9 @@ export const de = {
     workplacePlural: "Arbeitsplätze",
     bedSingular: "Bett",
     bedPlural: "Betten",
+    // "<taken> von <beds> Betten belegt" under a finished house; singular for exactly one bed.
+    bedsOf: "von",
+    bedsTaken: "belegt",
     // "Es fehlen 5 Holz, 2 Stein".
     missingPrefix: "Es fehlen",
     buildHeading: "Bauen",

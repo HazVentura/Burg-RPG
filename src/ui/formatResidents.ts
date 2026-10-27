@@ -10,11 +10,12 @@ import type { Needs } from "../sim/needs";
 import { getAgeYears, isAdult } from "../sim/residents";
 import type { GameState } from "../sim/state";
 import { de } from "../text/de";
+import { buildingDisplayNames } from "./buildingNames";
 
 export type NeedKey = keyof Needs;
 
 /** Fixed display order of the needs, so the bars never swap places. */
-export const NEED_ORDER = ["bread", "water"] as const satisfies readonly NeedKey[];
+export const NEED_ORDER = ["bread", "water", "housing"] as const satisfies readonly NeedKey[];
 
 export interface NeedRow {
   need: NeedKey;
@@ -31,6 +32,8 @@ export interface ResidentRow {
   ageText: string;
   /** German name of the current job, or "Ohne Arbeit". */
   jobText: string;
+  /** Name of the house the resident sleeps in ("Wohnhaus 2"), or "Obdachlos". */
+  homeText: string;
   /** Set when a pin is in effect but the resident has no workplace of that job. */
   waitingNote: string | null;
   pinnedJob: Job | null;
@@ -59,7 +62,9 @@ export function formatAge(years: number): string {
 
 /** One row per resident, in state.residents order. */
 export function formatResidentList(state: GameState): ResidentRow[] {
+  const buildingNames = buildingDisplayNames(state.buildings);
   return state.residents.map((resident) => {
+    const homeName = resident.homeId === null ? undefined : buildingNames.get(resident.homeId);
     const job = getJob(state.buildings, resident);
     const waiting = resident.pinnedJob !== null && job !== resident.pinnedJob;
     return {
@@ -67,6 +72,7 @@ export function formatResidentList(state: GameState): ResidentRow[] {
       name: resident.name,
       ageText: formatAge(getAgeYears(resident, state.elapsedHours)),
       jobText: job === null ? de.residentList.noJob : de.jobs[job],
+      homeText: homeName ?? de.residentList.homeless,
       waitingNote: waiting ? de.residentList.waitingForWorkplace : null,
       pinnedJob: resident.pinnedJob,
       canPin: isAdult(resident, state.elapsedHours),

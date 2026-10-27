@@ -299,7 +299,8 @@ body {
 }
 
 .need label {
-  min-width: 4rem;
+  /* Wide enough for the longest label, "Wohnraum", so all bars start in one line. */
+  min-width: 5.5rem;
   color: #5a4c38;
 }
 

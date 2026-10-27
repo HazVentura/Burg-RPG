@@ -1,6 +1,7 @@
 import { GOODS, type Storage } from "../src/sim/goods";
 import {
   BREAD_PER_RESIDENT_PER_DAY,
+  HOUSING_DROP_PER_DAY_WITHOUT,
   NEED_DROP_PER_DAY_WITHOUT,
   NEED_MAX,
   NEED_MIN,
@@ -22,8 +23,19 @@ function tickTimes(state: GameState, count: number): GameState {
   return current;
 }
 
-function makeResident(id: number, needs: Needs): Resident {
-  return { id, name: `R${id}`, sex: id % 2 === 1 ? "female" : "male", bornAtHour: -5 * HOURS_PER_YEAR, partnerId: null, needs, workplaceId: null, pinnedJob: null };
+/** Food and drink as given; Wohnraum full, since consumeDailyFood never touches it. */
+function makeResident(id: number, food: Omit<Needs, "housing">): Resident {
+  return {
+    id,
+    name: `R${id}`,
+    sex: id % 2 === 1 ? "female" : "male",
+    bornAtHour: -5 * HOURS_PER_YEAR,
+    partnerId: null,
+    needs: { ...food, housing: NEED_MAX },
+    workplaceId: null,
+    pinnedJob: null,
+    homeId: null,
+  };
 }
 
 function makeStorage(bread: number, water: number): Storage {
@@ -61,10 +73,10 @@ describe("need constants", () => {
 });
 
 describe("starting needs", () => {
-  it("gives every settler full bread and water, and no other need", () => {
+  it("gives every settler full bread, water and Wohnraum, and no other need", () => {
     for (const seed of [SEED, 0, -1]) {
       for (const resident of createInitialState(seed).residents) {
-        expect(resident.needs).toStrictEqual({ bread: NEED_MAX, water: NEED_MAX });
+        expect(resident.needs).toStrictEqual({ bread: NEED_MAX, water: NEED_MAX, housing: NEED_MAX });
       }
     }
   });
@@ -78,16 +90,16 @@ describe("starting needs", () => {
     expect(first.needs).not.toBe(second.needs);
     first.needs.bread = 10;
     first.needs.water = 20;
-    expect(second.needs).toEqual({ bread: NEED_MAX, water: NEED_MAX });
-    expect(b.residents[0]?.needs).toEqual({ bread: NEED_MAX, water: NEED_MAX });
-    expect(createInitialState(SEED).residents[0]?.needs).toEqual({ bread: NEED_MAX, water: NEED_MAX });
+    expect(second.needs).toEqual({ bread: NEED_MAX, water: NEED_MAX, housing: NEED_MAX });
+    expect(b.residents[0]?.needs).toEqual({ housing: NEED_MAX, bread: NEED_MAX, water: NEED_MAX });
+    expect(createInitialState(SEED).residents[0]?.needs).toEqual({ housing: NEED_MAX, bread: NEED_MAX, water: NEED_MAX });
   });
 
   it("keeps rngState, names, ages and partners exactly as before needs existed", () => {
     // Values recorded from main before this job (seed 42).
     const state = createInitialState(SEED);
     expect(state.rngState).toBe(1007906594);
-    expect(state.residents.map(({ needs: _needs, workplaceId: _workplaceId, pinnedJob: _pinnedJob, ...rest }) => rest)).toEqual([
+    expect(state.residents.map(({ needs: _needs, workplaceId: _workplaceId, pinnedJob: _pinnedJob, homeId: _homeId, ...rest }) => rest)).toEqual([
       { id: 1, name: "Mechthild", sex: "female", bornAtHour: -7536, partnerId: 2 },
       { id: 2, name: "Rudolf", sex: "male", bornAtHour: -6264, partnerId: 1 },
       { id: 3, name: "Gertrud", sex: "female", bornAtHour: -8496, partnerId: 4 },
@@ -173,12 +185,12 @@ describe("consumeDailyFood", () => {
     const noWater = consumeDailyFood(residents, makeStorage(5, 0));
     expect(noWater.storage.bread).toBe(5 - BREAD_PER_RESIDENT_PER_DAY);
     expect(noWater.storage.water).toBe(0);
-    expect(noWater.residents[0]?.needs).toEqual({ bread: NEED_MAX, water: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT });
+    expect(noWater.residents[0]?.needs).toEqual({ housing: NEED_MAX, bread: NEED_MAX, water: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT });
 
     const noBread = consumeDailyFood(residents, makeStorage(0, 5));
     expect(noBread.storage.bread).toBe(0);
     expect(noBread.storage.water).toBe(5 - WATER_PER_RESIDENT_PER_DAY);
-    expect(noBread.residents[0]?.needs).toEqual({ bread: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT, water: NEED_MAX });
+    expect(noBread.residents[0]?.needs).toEqual({ housing: NEED_MAX, bread: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT, water: NEED_MAX });
   });
 
   it("serves list order on ties: 3 bread for 8 full residents", () => {
@@ -205,6 +217,7 @@ describe("consumeDailyFood", () => {
     expect(result.storage.bread).toBe(0.5);
     expect(result.storage.water).toBe(0);
     expect(result.residents[0]?.needs).toEqual({
+      housing: NEED_MAX,
       bread: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT,
       water: NEED_MAX - NEED_DROP_PER_DAY_WITHOUT,
     });
@@ -223,7 +236,7 @@ describe("consumeDailyFood", () => {
 
   it("clamps at NEED_MIN when a need is below the drop", () => {
     const result = consumeDailyFood([makeResident(1, { bread: 10, water: NEED_MIN })], makeStorage(0, 0));
-    expect(result.residents[0]?.needs).toEqual({ bread: NEED_MIN, water: NEED_MIN });
+    expect(result.residents[0]?.needs).toEqual({ housing: NEED_MAX, bread: NEED_MIN, water: NEED_MIN });
   });
 
   it("leaves the storage unchanged for an empty resident list", () => {
@@ -258,7 +271,8 @@ describe("daily consumption through tick", () => {
     const state = stateBeforeMidnight([makeResident(1, { bread: 10, water: 25 })], makeStorage(0, 1));
     const next = tick(state);
     expect(next.elapsedHours).toBe(HOURS_PER_DAY);
-    expect(next.residents[0]?.needs).toEqual({ bread: NEED_MIN, water: NEED_MAX });
+    // No house in this state, so the resident is homeless and Wohnraum drops too.
+    expect(next.residents[0]?.needs).toEqual({ bread: NEED_MIN, water: NEED_MAX, housing: NEED_MAX - HOUSING_DROP_PER_DAY_WITHOUT });
     expect(next.storage).toEqual(makeStorage(0, 0));
   });
 
