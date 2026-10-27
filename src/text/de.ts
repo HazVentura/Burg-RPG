@@ -17,6 +17,15 @@ const seasons: Record<Season, string> = {
   winter: "Winter",
 };
 
+// What the fields do in each season, after the wheat on them: "Auf den Feldern: 120 Weizen, wächst".
+// Keyed by Season so a missing season is a type error.
+const fieldPhases: Record<Season, string> = {
+  spring: "wächst",
+  summer: "wächst",
+  autumn: "Erntezeit",
+  winter: "Feld ruht",
+};
+
 // Keyed by Speed so every selectable speed has a button text.
 const speeds: Record<Speed, string> = {
   1: "1x",
@@ -114,6 +123,9 @@ export const de = {
   goods,
   storage: {
     heading: "Lager",
+    // Below the goods while a finished field exists: "Auf den Feldern: 120 Weizen, wächst".
+    fieldsPrefix: "Auf den Feldern",
+    fieldPhases,
   },
   productionChain: {
     // The soft hyphen (U+00AD) lets the heading break as "Produktions-" / "kette"

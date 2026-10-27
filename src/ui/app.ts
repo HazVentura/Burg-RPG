@@ -28,7 +28,7 @@ import {
 import { formatChronicle, type ChronicleRow } from "./formatChronicle";
 import { formatClock } from "./formatClock";
 import { formatProductionChain, type ChainGoodCell, type ChainRow, type ProductionChainView } from "./formatProductionChain";
-import { formatStorage } from "./formatStorage";
+import { formatFieldWheat, formatStorage } from "./formatStorage";
 import { formatJobTargets, formatResidentList, type JobTargetRow, type NeedKey, type ResidentRow } from "./formatResidents";
 import { formatBuildingSummary, formatResidentSummary, type SummaryRow } from "./formatSummary";
 import { NEED_BAR_HIGH, NEED_BAR_LOW, NEED_BAR_MAX, NEED_BAR_MIN } from "./residentListConstants";
@@ -44,6 +44,8 @@ interface ClockView {
 interface StorageView {
   /** Amount element per good, built once and updated in place on every refresh. */
   amounts: Map<Good, HTMLElement>;
+  /** The wheat on the fields, below the goods; hidden while no finished field exists. */
+  fieldWheat: HTMLElement;
 }
 
 interface SummaryView {
@@ -336,7 +338,12 @@ function buildStorageView(): StorageView & { section: HTMLElement } {
   for (const good of GOODS) {
     amounts.set(good, addValue(list, de.goods[good]));
   }
-  return { section, amounts };
+  // Deliberately no live region, like the goods: it changes every hour.
+  const fieldWheat = document.createElement("p");
+  fieldWheat.className = "storage-fields";
+  fieldWheat.hidden = true;
+  section.append(fieldWheat);
+  return { section, amounts, fieldWheat };
 }
 
 /**
@@ -646,6 +653,9 @@ function updateStorageView(view: StorageView, state: GameState): void {
       amount.textContent = row.amount;
     }
   }
+  const fields = formatFieldWheat(state);
+  view.fieldWheat.hidden = fields === null;
+  view.fieldWheat.textContent = fields ?? "";
 }
 
 /**
