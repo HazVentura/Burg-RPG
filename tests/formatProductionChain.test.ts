@@ -1,4 +1,5 @@
 import { BUILDING_DEFINITIONS } from "../src/sim/buildingConstants";
+import { findShortages } from "../src/sim/shortages";
 import { createInitialState } from "../src/sim/state";
 import { de } from "../src/text/de";
 import { formatProductionChain, type ChainRow } from "../src/ui/formatProductionChain";
@@ -8,8 +9,10 @@ import {
   makeResident,
   makeState,
   storageWith,
+  noBakeryState,
   waterAndWoodState,
   wheatChainState,
+  wheatWithFieldState,
 } from "./chainFixtures";
 
 /** "Weizen 0 fehlt" per good, "!" marks a bottleneck: a compact view of one row. */
@@ -21,7 +24,7 @@ function describeRow(row: ChainRow): string {
 
 describe("production chain texts (AC7)", () => {
   it("has the area heading and every new string", () => {
-    expect(de.productionChain.heading).toBe("Produktionskette");
+    expect(de.productionChain.heading).toBe("Produktions\u00ADkette");
     expect(de.productionChain.noBottleneck).toBe("Kein Engpass");
     expect(de.productionChain.bottleneckPrefix).toBe("Engpass");
     expect(de.productionChain.missing).toBe("fehlt");
@@ -29,6 +32,34 @@ describe("production chain texts (AC7)", () => {
     expect(de.productionChain.residents).toBe("Bewohner");
     expect(de.productionChain.residentsAction).toBe("essen und trinken");
     expect(de.productionChain.listLabel).toMatch(/\S/);
+  });
+});
+
+describe("production chain texts of job 016", () => {
+  it("lets the heading break only at the soft hyphen and still read as Produktionskette (AC1)", () => {
+    const heading = de.productionChain.heading;
+    expect(heading).toBe("Produktions\u00ADkette");
+    expect(heading.replaceAll("\u00AD", "")).toBe("Produktionskette");
+    expect([...heading].filter((char) => char === "\u00AD")).toHaveLength(1);
+  });
+
+  it("keeps the list label unchanged (AC2)", () => {
+    expect(de.productionChain.listLabel).toBe("Schritte der Produktionskette");
+  });
+
+  it("has the Engpass mark for screen readers (AC3)", () => {
+    expect(de.productionChain.bottleneckMark).toBe("Engpass");
+  });
+
+  it("has one cause text per building type with its article (AC8)", () => {
+    expect(de.productionChain.missingBuilding).toEqual({
+      house: "kein Wohnhaus",
+      well: "kein Brunnen",
+      field: "kein Feld",
+      mill: "keine Mühle",
+      bakery: "keine Bäckerei",
+      woodcutterHut: "keine Holzfällerhütte",
+    });
   });
 });
 
@@ -50,7 +81,8 @@ describe("formatProductionChain (AC8)", () => {
 
   it("marks the wheat chain and names wheat as the bottleneck", () => {
     const chain = formatProductionChain(wheatChainState());
-    expect(chain.bottleneckText).toBe("Engpass: Weizen");
+    // No field exists, so the line names it as the cause (job 016, AC7).
+    expect(chain.bottleneckText).toBe("Engpass: Weizen (kein Feld)");
     expect(chain.hasBottleneck).toBe(true);
     expect(chain.rows.map(describeRow)).toEqual([
       " → Wasserträger (0 bei der Arbeit) → Wasser 10",
@@ -64,7 +96,8 @@ describe("formatProductionChain (AC8)", () => {
 
   it("names several bottlenecks in GOODS order", () => {
     const chain = formatProductionChain(waterAndWoodState());
-    expect(chain.bottleneckText).toBe("Engpass: Wasser, Holz");
+    // Neither a well nor a woodcutter hut exists (job 016, AC7).
+    expect(chain.bottleneckText).toBe("Engpass: Wasser (kein Brunnen), Holz (keine Holzfällerhütte)");
     const baker = chain.rows.find((row) => row.job === "baker");
     expect(baker === undefined ? "" : describeRow(baker)).toBe(
       "Mehl 10, !Wasser 0 fehlt, !Holz 0 fehlt → Bäcker (1 bei der Arbeit) → Brot 10",
@@ -72,16 +105,50 @@ describe("formatProductionChain (AC8)", () => {
   });
 
   it("marks exactly the goods named in the bottleneck line", () => {
-    for (const state of [createInitialState(SEED), wheatChainState(), waterAndWoodState()]) {
+    for (const state of [
+      createInitialState(SEED),
+      wheatChainState(),
+      waterAndWoodState(),
+      wheatWithFieldState(),
+      noBakeryState(),
+    ]) {
       const chain = formatProductionChain(state);
       const marked = new Set(
         chain.rows.flatMap((row) => [...row.inputs, ...row.outputs]).filter((c) => c.bottleneck).map((c) => c.name),
       );
+      // Drop the " (keine Bäckerei)" causes before splitting the goods apart.
       const named = chain.hasBottleneck
-        ? chain.bottleneckText.replace(`${de.productionChain.bottleneckPrefix}: `, "").split(", ")
+        ? chain.bottleneckText
+            .replace(`${de.productionChain.bottleneckPrefix}: `, "")
+            .replace(/ \([^)]*\)/g, "")
+            .split(", ")
         : [];
       expect([...marked].sort()).toEqual([...named].sort());
+      expect([...marked].sort()).toEqual(findShortages(state).bottlenecks.map((good) => de.goods[good]).sort());
     }
+  });
+
+  it("names the missing bakery as the cause of a bread bottleneck (job 016, AC7)", () => {
+    const chain = formatProductionChain(noBakeryState());
+    expect(chain.bottleneckText).toBe("Engpass: Brot (keine Bäckerei)");
+    expect(chain.hasBottleneck).toBe(true);
+  });
+
+  it("keeps the bare good name when its building exists but nobody works there (job 016, AC7)", () => {
+    const chain = formatProductionChain(wheatWithFieldState());
+    expect(chain.bottleneckText).toBe("Engpass: Weizen");
+  });
+
+  it("names no cause for a bakery under construction", () => {
+    const state = noBakeryState();
+    const building = { id: 9, type: "bakery" as const, hoursLeft: 5 };
+    const chain = formatProductionChain({ ...state, buildings: [building], nextBuildingId: 10 });
+    expect(chain.bottleneckText).toBe("Engpass: Brot");
+  });
+
+  it("leaves the rows unchanged by the causes (job 016, AC9)", () => {
+    const rows = formatProductionChain(wheatChainState()).rows;
+    expect(rows.find((row) => row.job === "farmer")?.outputs.map((c) => c.name)).toEqual(["Weizen"]);
   });
 
   it("counts workers with the capacity limit of production", () => {
