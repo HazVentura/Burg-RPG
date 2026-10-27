@@ -53,4 +53,4 @@ What you simulated (seed, days, commands) and which screenshots you took.
 What needs a click or a human eye.
 ```
 
-Use `CHANGES` only if at least one finding is a `blocker`: something a player would hit in normal play. Balance opinions are `minor` unless they contradict `docs/vision.md`.
+Use `CHANGES` only if at least one finding is a `blocker`: something a player would hit in normal play. A visible layout regression against `main` (something that looked right before this job and now looks broken at 360, 180 or 1280 px) is always a `blocker`; when in doubt, shoot `main` too and compare. Balance opinions are `minor` unless they contradict `docs/vision.md`.
