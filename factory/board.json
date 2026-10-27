@@ -311,7 +311,26 @@
       "builder": "builder-017-wheat-and-seasons",
       "decision": "APPROVE",
       "updated": "2026-10-27T17:18:50Z"
+    },
+    {
+      "id": "018-housing-beds",
+      "title": "Wohnraum",
+      "branch": "factory/018-housing-beds",
+      "stage": "merged",
+      "round": 1,
+      "max_round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS",
+        "play": "PASS"
+      },
+      "history": [],
+      "builder": "builder-018-housing-beds",
+      "decision": "APPROVE",
+      "updated": "2026-10-27T18:15:14Z"
     }
   ],
-  "updated": "2026-10-27T17:18:50Z"
+  "updated": "2026-10-27T18:15:14Z"
 }

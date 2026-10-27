@@ -31,7 +31,8 @@ Rules, numbers and terms come from `docs/vision.md`. Each item is one job.
 
 - [x] Korrekturen Produktionskette (Funde aus 015, siehe `factory/jobs/015-production-chain-diagram/decision.md`): Überschrift „Produktionskette“ bricht bei 200 % Zoom (180 px Viewport) mitten im Wort um, weicher Trennstrich; Engpass-Ware selbst ist für Screenreader nicht als Engpass markiert (nur fett und Rahmen); „Engpass: Brot“ sagt nicht, dass das Gebäude des Berufs fehlt, der die Ware herstellt (z. B. „keine Bäckerei“)
 - [x] Weizen und Jahreszeiten: Weizen wächst nur im Frühling und Sommer und wird im Herbst geerntet, im Winter ruht das Feld
-- [ ] Wohnraum: Betten in Wohnhäusern zuweisen, Bedürfnis Wohnraum, Obdachlose werden angezeigt
+- [x] Wohnraum: Betten in Wohnhäusern zuweisen, Bedürfnis Wohnraum, Obdachlose werden angezeigt
+- [ ] Korrektur Bedürfnisbalken: Seit 018 (`.need label` min-width 5.5rem) rutscht die Zahl neben den Bedürfnisbalken bei 1280 px (4 Bewohnerkarten pro Reihe) und bei 180 px in eine eigene Zeile; auf 360 px und vor 018 stand sie in einer Zeile mit Beschriftung und Balken. Beschriftung, Balken und Zahl müssen bei 1280, 360 und 180 px wieder in einer Zeile stehen, die drei Balken bleiben bündig (Belege: `factory/jobs/018-housing-beds/round-1/play/desktop-0.png`, `zoom200-2.png`)
 - [ ] Wärme: Holzverbrauch pro bewohntem Haus in Herbst und Winter, Bedürfnis Wärme, ohne Haus keine Wärme
 - [ ] Gesundheit: ergibt sich träge aus Brot, Wasser, Wohnraum und Wärme; kranke Bewohner arbeiten langsamer
 - [ ] Abwanderung: Bewohner, die mehrere Tage unversorgt sind, verlassen die Burg (Meldung in der Chronik)
